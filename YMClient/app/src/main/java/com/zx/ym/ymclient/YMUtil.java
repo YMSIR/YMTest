@@ -1,0 +1,204 @@
+package com.zx.ym.ymclient;
+
+/**
+ * Created by zhangxinwei02 on 2017/5/31.
+ */
+
+import android.os.Environment;
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.telephony.TelephonyManager;
+import android.util.Log;
+import android.content.Intent;
+import android.net.Uri;
+import java.io.File;
+import java.io.IOException;
+import android.content.pm.*;
+import java.net.*;
+import java.util.*;
+
+public class YMUtil {
+
+	// 下载缓存目录
+	public static String fileRootPath = Environment.getExternalStorageDirectory() + "/YMClient/" ;
+
+	// 获取设备ID
+    public static String getDeviceId(Context context) {
+        TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+        String deviceId = tm.getDeviceId();
+        if (deviceId == null) {
+            return "";
+        } else {
+            return deviceId;
+        }
+    }
+
+	// 获取手机品牌
+    public static String getPhoneBrand() {
+        return android.os.Build.BRAND;
+    }
+
+	// 获取手机型号
+    public static String getPhoneModel() {
+        return android.os.Build.MODEL;
+    }
+
+	// 获取SDK
+    public static int getBuildLevel() {
+        return android.os.Build.VERSION.SDK_INT;
+    }
+
+	// 获取系统版本
+    public static String getBuildVersion() {
+        return android.os.Build.VERSION.RELEASE;
+    }
+	
+	// 获取网络类型
+    public static String getNetType(Context context) {
+    	  String netType = "null";
+    	  ConnectivityManager manager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+
+    	  NetworkInfo networkInfo = manager.getActiveNetworkInfo();
+
+    	  if (networkInfo == null) {
+    	    return netType;
+    	  }
+    	  int nType = networkInfo.getType();
+    	  if (nType == ConnectivityManager.TYPE_WIFI) {
+    	    //WIFI
+    	    netType = "wifi";
+    	  } else if (nType == ConnectivityManager.TYPE_MOBILE) {
+    	    int nSubType = networkInfo.getSubtype();
+    	    TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+    	    //4G
+    	    if (nSubType == TelephonyManager.NETWORK_TYPE_LTE
+    	        && !telephonyManager.isNetworkRoaming()) {
+    	      netType = "4G";
+    	    } else if (nSubType == TelephonyManager.NETWORK_TYPE_UMTS || nSubType == TelephonyManager.NETWORK_TYPE_HSDPA || nSubType == TelephonyManager.NETWORK_TYPE_EVDO_0 && !telephonyManager.isNetworkRoaming()) {
+    	      netType = "3G";
+    	    } else if (nSubType == TelephonyManager.NETWORK_TYPE_GPRS || nSubType == TelephonyManager.NETWORK_TYPE_EDGE || nSubType == TelephonyManager.NETWORK_TYPE_CDMA && !telephonyManager.isNetworkRoaming()) {
+    	      netType = "2G";
+    	    } else {
+    	      netType = "2G";
+    	    }
+    	  }
+    	  return netType;
+    	}
+
+	// 日志输出
+	public static void log(String message) {
+		Log.i("YMClient", message);
+		MainActivity.instance.log(message);
+	}
+
+	// 检测目录是否存在
+	public static void checkFileRootDir()
+	{
+		File dir = new File(fileRootPath);
+		if (!dir.exists())
+		{
+			dir.mkdir();
+		}
+	}
+
+	// 创建文件
+	public static File createSDFile(String fileName)  {
+		try
+		{
+			File file = new File(fileRootPath + fileName);
+			file.createNewFile();
+			return file;
+		}
+		catch (IOException ex) {
+			ex.printStackTrace();
+			return null;
+		}
+	}
+
+	// 判断文件是否存在
+	public static boolean isFileExist(String fileName){
+		File file = new File(fileRootPath + fileName);
+		return file.exists();
+	}
+
+	// 获取下载文件名
+	public static String geneFileNameFromUrl(String url)
+	{
+		int index = url.lastIndexOf("/");
+		if (index >= 0)
+		{
+			return url.substring(index);
+		}
+		else
+		{
+			return url;
+		}
+	}
+
+	public static String  getLocalIpAddress() {
+		try {
+			for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements();) {
+				NetworkInterface intf = en.nextElement();
+				for (Enumeration<InetAddress> enumIpAddr = intf.getInetAddresses(); enumIpAddr.hasMoreElements();) {
+					InetAddress inetAddress = enumIpAddr.nextElement();
+					if (!inetAddress.isLoopbackAddress()) {
+						return inetAddress.getHostAddress().toString();
+					}
+				}
+			}
+		} catch (SocketException ex) {
+			ex.printStackTrace();
+		}
+		return null;
+	}
+
+	// 安装APP
+	public static void installAPK(String apkFilePath) {
+		// TODO Auto-generated method stub
+		// 安装程序的apk文件路径
+		String fileName = fileRootPath + apkFilePath;
+		// 创建URI
+		Uri uri = Uri.fromFile(new File(fileName));
+		// 创建Intent意图
+		Intent intent = new Intent(Intent.ACTION_VIEW);
+		// 设置Uri和类型
+		intent.setDataAndType(uri, "application/vnd.android.package-archive");
+		// 执行意图进行安装
+		MainActivity.instance.startActivity(intent);
+	}
+
+	// 卸载APP
+	public static void uninstallAPK(String packageName) {
+		// TODO Auto-generated method stub
+		// 通过程序的报名创建URI
+		Uri packageURI = Uri.parse("package:" + packageName);
+		// 创建Intent意图
+		Intent intent = new Intent(Intent.ACTION_DELETE);
+		intent.setData(packageURI);
+		// 执行卸载程序
+		MainActivity.instance.startActivity(intent);
+	}
+
+	// 启动APP
+	public static void startAPP(String packageName)
+	{
+		try {
+			PackageManager packageManager = MainActivity.instance.getPackageManager();
+			Intent intent = packageManager.getLaunchIntentForPackage(packageName);
+			MainActivity.instance.startActivity(intent);
+		} catch (Exception e) {
+			log(e.getMessage());
+		}
+	}
+
+	// 重启APP
+	public static void restartAPP()
+	{
+		Intent intent = MainActivity.instance.getPackageManager()
+				.getLaunchIntentForPackage(MainActivity.instance.getPackageName());
+		intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+		MainActivity.instance.startActivity(intent);
+	}
+
+}
