@@ -20,9 +20,12 @@ public class YMDownLoader {
     private String _urlstr;
     /** http连接管理类 */
     private HttpURLConnection _urlcon;
+    // 数据大小
+    private int _bufferLength;
 
     public YMDownLoader(String url)
     {
+        _bufferLength = -1;
         _urlstr = url;
         _urlcon = getConnection();
     }
@@ -41,6 +44,7 @@ public class YMDownLoader {
                 sb.append(temp);
             }
             br.close();
+            _urlcon.disconnect();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -57,21 +61,18 @@ public class YMDownLoader {
         try {
             url = new URL(_urlstr);
             urlcon = (HttpURLConnection) url.openConnection();
-            int resCode =  urlcon.getResponseCode();
-            if(resCode == 200)
+            urlcon.setRequestProperty("Accept-Encoding", "identity");
+            urlcon.connect();
+            if (urlcon.getResponseCode() == 200)
+            {
+                _bufferLength = urlcon.getContentLength();
                 return urlcon;
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
         }
         return null;
-    }
-
-    /*
-     * 获取连接文件长度。
-     */
-    public int getLength()
-    {
-        return _urlcon.getContentLength();
     }
 
     /*
@@ -87,16 +88,24 @@ public class YMDownLoader {
             InputStream is = _urlcon.getInputStream();
             fos = new FileOutputStream(file);
             byte[] buf = new byte[1024];
-            while ((is.read(buf)) != -1) {
+            int downSize = 0;
+            int fileSize = _bufferLength;
+            while ((is.read(buf)) != -1)
+            {
                 fos.write(buf);
-                task.progress = buf.length / getLength() * 100;
+                downSize += buf.length;
+                if (fileSize != -1)
+                {
+                    task.progress = (int)(downSize * 100.0 / fileSize);
+                }
             }
             is.close();
         } catch (Exception e) {
             return 0;
         } finally {
             try {
-                fos.close();
+                if (fos != null)
+                    fos.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }

@@ -11,6 +11,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.content.Context;
+import android.content.pm.ProviderInfo;
 
 
 // 心跳检测
@@ -75,37 +76,7 @@ public class YMNetWorker {
 		_context = context;
 		_sendMessageQueue = new LinkedList<YMMessage>();
 		_recvMessageQueue = new LinkedList<YMMessage>();
-		_dispatcher = new YMDispatcher();
-		_dispatcher.addListener(YMEvent.ID_ConnSuccess, new YMListener() {
-			@Override
-			public void onEvent(YMEvent event) {
-				
-				on_ConnSuccessEvent(event);
-			}
-		});
-		_dispatcher.addListener(YMEvent.ID_DisConnect, new YMListener() {
-			@Override
-			public void onEvent(YMEvent event) {
-				
-				on_DisConnectEvent(event);
-			}
-		});
-		
-		_dispatcher.addListener(YMMessage.S_CheckAlive, new YMListener() {
-			@Override
-			public void onEvent(YMEvent event) {
-				
-				on_S_CheckAlive(event);
-			}
-		});
-		
-		_dispatcher.addListener(YMMessage.S_DeviceInfo, new YMListener() {
-			@Override
-			public void onEvent(YMEvent event) {
-				
-				on_S_DeviceInfo(event);
-			}
-		});
+		bindListener();
 	}
 	
 	public YMDispatcher getDispatcher() 
@@ -176,7 +147,12 @@ public class YMNetWorker {
 
 	public boolean isConnected()
 	{
-		return _netThread.isConnected();
+		if (_netThread != null)
+		{
+			return _netThread.isConnected();
+		}
+
+		return  false;
 	}
 
 
@@ -194,7 +170,43 @@ public class YMNetWorker {
 	{
 		putSendMessageQueue(message);
 	}
-	
+
+	// 绑定监听
+	private void bindListener()
+	{
+		_dispatcher = new YMDispatcher();
+		_dispatcher.addListener(YMEvent.ID_ConnSuccess, new YMEvent.OnListener() {
+			@Override
+			public void onEvent(YMEvent event) {
+
+				on_ConnSuccessEvent(event);
+			}
+		});
+		_dispatcher.addListener(YMEvent.ID_DisConnect, new YMEvent.OnListener() {
+			@Override
+			public void onEvent(YMEvent event) {
+
+				on_DisConnectEvent(event);
+			}
+		});
+
+		_dispatcher.addListener(YMMessage.S_CheckAlive, new YMEvent.OnListener() {
+			@Override
+			public void onEvent(YMEvent event) {
+
+				on_S_CheckAlive(event);
+			}
+		});
+
+		_dispatcher.addListener(YMMessage.S_DeviceInfo, new YMEvent.OnListener() {
+			@Override
+			public void onEvent(YMEvent event) {
+
+				on_S_DeviceInfo(event);
+			}
+		});
+	}
+
 	private void handMessage() 
 	{	
 		YMMessage message = popRecvMessageQueue();

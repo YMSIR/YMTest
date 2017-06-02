@@ -9,9 +9,15 @@ import java.util.Map;
 
 public class YMEvent {
 	
-	public final static int ID_ConnSuccess 	= 1;
-	public final static int ID_DisConnect 	= 2;
-	
+	public final static int ID_ConnSuccess 				= 1;
+	public final static int ID_DisConnect 					= 2;
+	public final static int ID_Log 							= 3;
+	public final static int ID_GetServerInfoSuccess 		= 4;
+	public final static int ID_UpdateUI 					= 5;
+
+	interface OnListener{
+		public void onEvent(YMEvent event);
+	}
 	
 	private int _ymEventType;
 	private Map<String, Object>_argMap;

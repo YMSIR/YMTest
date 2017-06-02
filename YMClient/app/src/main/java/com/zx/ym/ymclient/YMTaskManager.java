@@ -58,11 +58,7 @@ public class YMTaskManager extends Thread {
             _curTask = popTask();
             if (_curTask == null)
             {
-                try {
-                    sleep(1000);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+
             }
             else
             {
@@ -77,6 +73,7 @@ public class YMTaskManager extends Thread {
                     }
                     case DownLoadFile:
                     {
+                        YMUtil.checkFileRootDir();
                         YMDownLoader downLoader = new YMDownLoader(_curTask.mainName);
                         String fileName = YMUtil.geneFileNameFromUrl(_curTask.mainName);
                         downLoader.down2sd(fileName, _curTask);
@@ -115,12 +112,7 @@ public class YMTaskManager extends Thread {
                     }
                     break;
                 }
-
-                try {
-                    sleep(1000);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                _curTask = null;
             }
 
         }while (_isRun);

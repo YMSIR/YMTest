@@ -6,6 +6,9 @@ package com.zx.ym.ymclient;
 
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.logging.LogRecord;
+
+import android.app.Notification;
 import android.os.Bundle;
 import android.app.Activity;
 import android.text.method.ScrollingMovementMethod;
@@ -14,15 +17,21 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import org.json.JSONException;
 import org.json.JSONObject;
+import org.w3c.dom.ProcessingInstruction;
+
+import android.os.Message;
+import android.os.Handler;
 
 public class MainActivity extends Activity {
 
     public static MainActivity instance;
 	private YMNetWorker _netWorker;
-	private Timer _timer;
+    private YMTimer _handler;
+    private YMDispatcher _dispatcher;
     private YMTaskManager _taskManager;
+    private View _view_main;
+    private View _view_loading;
 	private TextView _textView_log;
     private TextView _textView_serverIP;
     private TextView _textView_clientIP;
@@ -31,8 +40,7 @@ public class MainActivity extends Activity {
     private TextView _textView_connState;
     private ProgressBar _progressBar_loading;
     private ProgressBar _progressBar_task;
-    //private static String _serverInfoURL = "https://pan.baidu.com/s/1dEC1033";
-    private static String _serverInfoURL = "http://code.taobao.org/p/3ddemo/src/Resources/ui/worldmap/worldmap0.plist";
+    private final static String _serverInfoURL = "http://code.taobao.org/svn/YMFile/serverinfo.txt";
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -40,15 +48,11 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         instance = this;
-        _timer= new java.util.Timer(true); 
-		TimerTask task = new TimerTask() {  
-			   public void run() {
-                   update();
-			   }     
-			};
-		_timer.schedule(task, 0, 100);
         initUIWidgets();
         initNetWorker();
+        initTimerHandler();
+        initBindListener();
+        showLoadingUI();
     }
 
     // 初始化网络
@@ -58,7 +62,47 @@ public class MainActivity extends Activity {
         _taskManager.start();
         YMTask task = new YMTask(YMTaskType.DownLoadString);
         task.mainName = _serverInfoURL;
+        task.finishListener = new YMTask.OnFinishListener()
+        {
+            @Override
+            public void onFinish(YMTask task)
+            {
+                onServerInfo(task);
+            }
+        };
         _taskManager.addTask(task);
+    }
+
+    private void initBindListener()
+    {
+        _dispatcher = new YMDispatcher();
+        _dispatcher.addListener(YMEvent.ID_GetServerInfoSuccess, new YMEvent.OnListener() {
+            @Override
+            public void onEvent(YMEvent event) {
+
+                on_GetServerInfoSuccessEvent(event);
+            }
+        });
+        _dispatcher.addListener(YMEvent.ID_UpdateUI, new YMEvent.OnListener() {
+            @Override
+            public void onEvent(YMEvent event) {
+
+                on_UpdateUIEvent(event);
+            }
+        });
+    }
+
+    // 初始化定时器
+    private void initTimerHandler()
+    {
+        _handler = new YMTimer();
+        _handler.setOnUpdate(new YMTimer.OnUpdate() {
+            @Override
+            public void update() {
+                instance.update();
+            }
+        });
+        _handler.start(0, 50);
     }
 
     // 服务器地址
@@ -73,7 +117,7 @@ public class MainActivity extends Activity {
                 int port = obj.getInt("port");
                 _netWorker = new YMNetWorker(this);
                 _netWorker.start(ip, port);
-                updateUIServerInfo();
+                sendGetServerInfoSuccessEvent();
             }
             else {
                 log("download serverinfo failed");
@@ -88,30 +132,33 @@ public class MainActivity extends Activity {
     // 初始化UI
     private void initUIWidgets()
     {
+        _view_main = findViewById(R.id.view_main);
+        _view_loading = findViewById(R.id.view_loading);
         _textView_log =(TextView) findViewById(R.id.textView_log);
-        _textView_log.setText("");
         _textView_log.setMovementMethod(ScrollingMovementMethod.getInstance());
         _textView_serverIP =(TextView) findViewById(R.id.textView_serverip);
-        _textView_serverIP.setText("127.0.0.1");
         _textView_serverPort =(TextView) findViewById(R.id.textView_serverport);
-        _textView_serverPort.setText("8001");
         _textView_clientIP =(TextView) findViewById(R.id.textView_clientip);
-        _textView_clientIP.setText(YMUtil.getLocalIpAddress());
         _textView_connState =(TextView) findViewById(R.id.textView_connstate);
-        _textView_connState.setText("未连接");
         _textView_curTask =(TextView) findViewById(R.id.textView_curtask);
-        _textView_curTask.setText("空");
         _progressBar_loading =(ProgressBar) findViewById(R.id.progressBar_loading);
         _progressBar_task =(ProgressBar) findViewById(R.id.progressBar_task);
 
+        testButtons();
+    }
+
+    // 测试
+    private void testButtons()
+    {
         final String testApp = "com.test.ymclient";
-        final String urlAPK = "http://pan.baidu.com/s/1nuAPn7N";
+        final String nameApp = "YMClient.apk";
+        final String urlAPK = "http://10.246.52.71/YMClient.apk";
         Button install = (Button)findViewById(R.id.button_install);
         install.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 YMTask task = new YMTask(YMTaskType.IntallAPP);
-                task.mainName = testApp;
+                task.mainName = nameApp;
                 _taskManager.addTask(task);
             }
         });
@@ -144,6 +191,22 @@ public class MainActivity extends Activity {
         });
     }
 
+    // 显示Loading
+    private void showLoadingUI()
+    {
+        _view_loading.setVisibility(View.VISIBLE);
+        _view_main.setVisibility(View.INVISIBLE);
+    }
+
+    // 显示主信息
+    private void showMainUI()
+    {
+        _view_loading.setVisibility(View.INVISIBLE);
+        _view_main.setVisibility(View.VISIBLE);
+        this.updateUIServerInfo();
+        this.updateUIState();
+    }
+
     // 日志输出
     public void log(String str)
     {
@@ -153,54 +216,100 @@ public class MainActivity extends Activity {
         }
     }
 
+    // 发送LOG事件
+    public void sendLogEvent(String msg)
+    {
+        YMEvent ymEvent = new YMEvent(YMEvent.ID_Log);
+        ymEvent.addAttr("log",msg);
+        _dispatcher.dispatchInMainThread(ymEvent);
+    }
+
+    // 发送UpdateUI事件
+    public void sendUpdateUIEvent()
+    {
+        YMEvent ymEvent = new YMEvent(YMEvent.ID_UpdateUI);
+        _dispatcher.dispatchInMainThread(ymEvent);
+    }
+
+    // 发送GetServerInfoSuccess事件
+    public void sendGetServerInfoSuccessEvent()
+    {
+        YMEvent ymEvent = new YMEvent(YMEvent.ID_GetServerInfoSuccess);
+        _dispatcher.dispatchInMainThread(ymEvent);
+    }
+
     // 刷新
     public void update()
     {
         if (_netWorker != null)
         {
             _netWorker.update();
-            this.updateUIState();
         }
+        if(_dispatcher != null)
+        {
+            _dispatcher.update();
+        }
+        this.updateUIState();
     }
 
     // 刷新服务器信息
     private void updateUIServerInfo()
     {
         _textView_serverIP.setText(_netWorker.getServerIP());
-        _textView_serverPort.setText(_netWorker.getServerPort());
-        _textView_clientIP.setText(YMUtil.getLocalIpAddress());
+        _textView_serverPort.setText(String.valueOf(_netWorker.getServerPort()));
+        _textView_clientIP.setText(YMUtil.getIPAddress(this));
     }
 
     // 刷新UI
     private void updateUIState()
     {
-        boolean isConnected = _netWorker.isConnected();
+        boolean isConnected = false;
+        if(_netWorker != null)
+        {
+            isConnected = _netWorker.isConnected();
+        }
         if (isConnected)
         {
             _textView_connState.setText("已连接");
-            YMTask task = _taskManager.getCurTask();
-            if (task != null)
-            {
-                _textView_curTask.setText("正在进行");
-                _progressBar_loading.setVisibility(View.GONE);
-                _progressBar_task.setVisibility(View.VISIBLE);
-                _progressBar_task.setProgress(task.progress);
-            }
-            else
-            {
-                _textView_curTask.setText("空");
-                _progressBar_loading.setVisibility(View.GONE);
-                _progressBar_task.setVisibility(View.GONE);
-            }
+            _progressBar_loading.setVisibility(View.INVISIBLE);
         }
         else
         {
             _textView_connState.setText("连接中");
             _progressBar_loading.setVisibility(View.VISIBLE);
-            _progressBar_task.setVisibility(View.GONE);
-            _textView_curTask.setText("连接服务器");
         }
 
+        YMTask task = _taskManager.getCurTask();
+        if (task != null)
+        {
+            _textView_curTask.setText("正在进行");
+            _progressBar_task.setVisibility(View.VISIBLE);
+            _progressBar_task.setProgress(task.progress);
+        }
+        else
+        {
+            _textView_curTask.setText("空");
+            _progressBar_task.setVisibility(View.VISIBLE);
+            _progressBar_task.setProgress(0);
+        }
     }
+
+    private void on_LogEvent(YMEvent event)
+    {
+        log((String) event.getAttr("log"));
+    }
+
+    private void on_GetServerInfoSuccessEvent(YMEvent event)
+    {
+        showMainUI();
+        updateUIServerInfo();
+    }
+
+    private void on_UpdateUIEvent(YMEvent event)
+    {
+        updateUIServerInfo();
+        updateUIState();
+    }
+
 
 }

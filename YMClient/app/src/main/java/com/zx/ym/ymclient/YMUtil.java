@@ -17,6 +17,7 @@ import java.io.IOException;
 import android.content.pm.*;
 import java.net.*;
 import java.util.*;
+import android.net.wifi.*;
 
 public class YMUtil {
 
@@ -89,17 +90,23 @@ public class YMUtil {
 	// 日志输出
 	public static void log(String message) {
 		Log.i("YMClient", message);
-		MainActivity.instance.log(message);
+		//MainActivity.instance.log(message);
 	}
 
 	// 检测目录是否存在
 	public static void checkFileRootDir()
 	{
+
 		File dir = new File(fileRootPath);
 		if (!dir.exists())
 		{
 			dir.mkdir();
 		}
+		if (!dir.exists())
+		{
+			log("xxxxx");
+		}
+
 	}
 
 	// 创建文件
@@ -128,7 +135,7 @@ public class YMUtil {
 		int index = url.lastIndexOf("/");
 		if (index >= 0)
 		{
-			return url.substring(index);
+			return url.substring(index + 1);
 		}
 		else
 		{
@@ -136,21 +143,47 @@ public class YMUtil {
 		}
 	}
 
-	public static String  getLocalIpAddress() {
-		try {
-			for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements();) {
-				NetworkInterface intf = en.nextElement();
-				for (Enumeration<InetAddress> enumIpAddr = intf.getInetAddresses(); enumIpAddr.hasMoreElements();) {
-					InetAddress inetAddress = enumIpAddr.nextElement();
-					if (!inetAddress.isLoopbackAddress()) {
-						return inetAddress.getHostAddress().toString();
+	// 获取IP地址
+	public static String getIPAddress(Context context) {
+		NetworkInfo info = ((ConnectivityManager) context
+				.getSystemService(Context.CONNECTIVITY_SERVICE)).getActiveNetworkInfo();
+		if (info != null && info.isConnected()) {
+			if (info.getType() == ConnectivityManager.TYPE_MOBILE) {//当前使用2G/3G/4G网络
+				try {
+					//Enumeration<NetworkInterface> en=NetworkInterface.getNetworkInterfaces();
+					for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements(); ) {
+						NetworkInterface intf = en.nextElement();
+						for (Enumeration<InetAddress> enumIpAddr = intf.getInetAddresses(); enumIpAddr.hasMoreElements(); ) {
+							InetAddress inetAddress = enumIpAddr.nextElement();
+							if (!inetAddress.isLoopbackAddress() && inetAddress instanceof Inet4Address) {
+								return inetAddress.getHostAddress();
+							}
+						}
 					}
+				} catch (SocketException e) {
+					e.printStackTrace();
 				}
+
+			} else if (info.getType() == ConnectivityManager.TYPE_WIFI) {//当前使用无线网络
+				WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+				WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+				String ipAddress = intIP2StringIP(wifiInfo.getIpAddress());//得到IPV4地址
+				return ipAddress;
 			}
-		} catch (SocketException ex) {
-			ex.printStackTrace();
+		} else {
+			//当前无网络连接,请在设置中打开网络
 		}
 		return null;
+	}
+
+	/**
+	 * 将得到的int类型的IP转换为String类型
+	 */
+	public static String intIP2StringIP(int ip) {
+		return (ip & 0xFF) + "." +
+				((ip >> 8) & 0xFF) + "." +
+				((ip >> 16) & 0xFF) + "." +
+				(ip >> 24 & 0xFF);
 	}
 
 	// 安装APP

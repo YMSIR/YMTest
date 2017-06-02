@@ -21,7 +21,7 @@ public class YMTask {
     public YMTaskType taskType;
     public String mainName;
     public int progress;
-    public boolean isCompleted;
+    public boolean isFinished;
     public String result;
     public OnFinishListener finishListener;
 
@@ -36,14 +36,14 @@ public class YMTask {
         mainName = "";
         progress = 0;
         result = "";
-        isCompleted = false;
+        isFinished = false;
         finishListener = null;
     }
 
     public void finish()
     {
         progress = 100;
-        isCompleted = true;
+        isFinished = true;
         if (finishListener != null)
         {
             finishListener.onFinish(this);

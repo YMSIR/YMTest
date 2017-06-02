@@ -12,32 +12,26 @@ import java.util.Queue;
 
 
 
-
-interface YMListener{
-
-	public void onEvent(YMEvent event); 
-}
-
-
 public class YMDispatcher {
-	
+
+
 	// 监听列表
-	private Map<Integer, List<YMListener>> _listenMap;
+	private Map<Integer, List<YMEvent.OnListener>> _listenMap;
 	// 缓存列表
 	private	Queue<YMEvent> _cacheEventQueue;
 	
 	public YMDispatcher() {
 	
-		_listenMap = new HashMap<Integer, List<YMListener>>();
+		_listenMap = new HashMap<Integer, List<YMEvent.OnListener>>();
 		_cacheEventQueue = new LinkedList<YMEvent>();
 	}
 	
 	// 监听事件
-	public void addListener(int id, YMListener listener) {
+	public void addListener(int id, YMEvent.OnListener listener) {
 		
-		List<YMListener> list = _listenMap.get(id);
+		List<YMEvent.OnListener> list = _listenMap.get(id);
 		if (list == null) {
-			list = new ArrayList<YMListener>();
+			list = new ArrayList<YMEvent.OnListener>();
 			_listenMap.put(id, list);
 		}
 		
@@ -50,7 +44,7 @@ public class YMDispatcher {
 	// 派发事件
 	public void dispatch(YMEvent event) {
 		
-		List<YMListener> list = _listenMap.get(event.getEventType());
+		List<YMEvent.OnListener> list = _listenMap.get(event.getEventType());
 		if (list != null) {
 			
 			for (int i = 0; i < list.size(); i++) {
