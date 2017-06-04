@@ -95,7 +95,7 @@ public class YMTaskManager extends Thread {
                     break;
                     case IntallAPP:
                     {
-                        YMUtil.installAPK(_curTask.mainName);
+                        YMUtil.silentInstall(_curTask.mainName);
                         _curTask.finish();
                     }
                     break;

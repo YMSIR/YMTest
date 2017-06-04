@@ -152,7 +152,7 @@ public class MainActivity extends Activity {
     {
         final String testApp = "com.test.ymclient";
         final String nameApp = "YMClient.apk";
-        final String urlAPK = "http://10.246.52.71/YMClient.apk";
+        final String urlAPK = "http://code.taobao.org/svn/YMFile/YMClient.apk";
         Button install = (Button)findViewById(R.id.button_install);
         install.setOnClickListener(new View.OnClickListener() {
             @Override

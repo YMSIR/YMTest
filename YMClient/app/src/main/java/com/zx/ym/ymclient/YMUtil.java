@@ -18,6 +18,8 @@ import android.content.pm.*;
 import java.net.*;
 import java.util.*;
 import android.net.wifi.*;
+import java.io.DataOutputStream;
+
 
 public class YMUtil {
 
@@ -114,6 +116,7 @@ public class YMUtil {
 		try
 		{
 			File file = new File(fileRootPath + fileName);
+			file.delete();
 			file.createNewFile();
 			return file;
 		}
@@ -232,6 +235,35 @@ public class YMUtil {
 				.getLaunchIntentForPackage(MainActivity.instance.getPackageName());
 		intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 		MainActivity.instance.startActivity(intent);
+	}
+
+	public static int silentInstall(String apkFile) {
+		String apkAbsolutePath = fileRootPath + apkFile;
+		String cmd = "pm install -r " + apkAbsolutePath;
+		int result = -1;
+		DataOutputStream dos = null;
+
+		try {
+			Process p = Runtime.getRuntime().exec("su");
+			dos = new DataOutputStream(p.getOutputStream());
+			dos.writeBytes(cmd + "\n");
+			dos.flush();
+			dos.writeBytes("exit\n");
+			dos.flush();
+			p.waitFor();
+			result = p.exitValue();
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if (dos != null) {
+				try {
+					dos.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		return result;
 	}
 
 }
