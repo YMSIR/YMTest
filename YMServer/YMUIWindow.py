@@ -45,12 +45,14 @@ class YMDevList(wx.ListCtrl, listmix.CheckListCtrlMixin, listmix.ListCtrlAutoWid
         self.InsertColumn(3, u"手机品牌")
         self.InsertColumn(4, u"手机型号")
         self.InsertColumn(5, u"系统版本")
+        self.InsertColumn(6, u"当前消息")
 
         self.SetColumnWidth(0, 100)
         self.SetColumnWidth(1, 100)
         self.SetColumnWidth(2, 120)
         self.SetColumnWidth(3, 100)
         self.SetColumnWidth(4, 100)
+        self.SetColumnWidth(5, 100)
 
         self.Bind(wx.EVT_COMMAND_RIGHT_CLICK, self.OnRightClick)
         self.Bind(wx.EVT_RIGHT_UP, self.OnRightClick)
@@ -83,6 +85,7 @@ class YMDevList(wx.ListCtrl, listmix.CheckListCtrlMixin, listmix.ListCtrlAutoWid
         self.SetStringItem(index, 3, YMUtil.safe_GeStringValueFromDict(attr, "phoneBrand"))
         self.SetStringItem(index, 4, YMUtil.safe_GeStringValueFromDict(attr, "phoneModel"))
         self.SetStringItem(index, 5, YMUtil.safe_GeStringValueFromDict(attr, "version"))
+        self.SetStringItem(index, 6, YMUtil.safe_GeStringValueFromDict(attr, "message"))
 
     #右键菜单
     def OnRightClick(self, event):
@@ -120,7 +123,15 @@ class YMDevList(wx.ListCtrl, listmix.CheckListCtrlMixin, listmix.ListCtrlAutoWid
     def OnPopupThree(self, event):
         self.refreshList(self.data)
 
-
+    #获取选中列表ID
+    def getSelItemList(self):
+        selIdList = []
+        count =  self.GetItemCount()
+        for i in range(0, count):
+            if(self.IsChecked(i)):
+                id = self.GetItemData(i)
+                selIdList.append(id)
+        return selIdList
 #---------------------------------------------------------------------------
 #主窗口
 
@@ -160,7 +171,7 @@ class YMUIWindow(wx.Frame):
         self.mgr.AddPane(self.rightPanel, wx.aui.AuiPaneInfo().CenterPane().Name("DevList"))
         self.mgr.AddPane(self.leftPanel,
                          wx.aui.AuiPaneInfo().
-                         Left().Layer(2).BestSize((240, -1)).
+                         Right().Layer(2).BestSize((240, -1)).
                          MinSize((240, -1)).
                          Floatable(self.allowAuiFloating).FloatingSize((240, 700)).
                          Caption(u"命令列表").
@@ -191,13 +202,24 @@ class YMUIWindow(wx.Frame):
 
     #命令列表
     def initCmdList(self, parent):
-        btn_openApp = wx.Button(parent, -1, u"启动APP")
-        btn_closeApp = wx.Button(parent, -1, u"关闭APP")
+        btn_downApp = wx.Button(parent, -1, u"下载App")
+        btn_openApp = wx.Button(parent, -1, u"启动App")
+        btn_installApp = wx.Button(parent, -1, u"安装App")
+        btn_uninstallApp = wx.Button(parent, -1, u"卸载App")
+        btn_restartApp = wx.Button(parent, -1, u"重启App")
+
         self.Bind(wx.EVT_BUTTON, self.OnBtn_OpenApp, btn_openApp)
-        self.Bind(wx.EVT_BUTTON, self.OnBtn_CloseApp, btn_closeApp)
+        self.Bind(wx.EVT_BUTTON, self.OnBtn_DownApp, btn_downApp)
+        self.Bind(wx.EVT_BUTTON, self.OnBtn_InstallApp, btn_installApp)
+        self.Bind(wx.EVT_BUTTON, self.OnBtn_UninstallApp, btn_uninstallApp)
+        self.Bind(wx.EVT_BUTTON, self.OnBtn_RestartApp, btn_restartApp)
+
         sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(btn_downApp, 0, wx.Left|wx.Right|wx.EXPAND, 10)
+        sizer.Add(btn_installApp, 0,wx.Left|wx.Right|wx.EXPAND, 10)
         sizer.Add(btn_openApp, 0, wx.Left|wx.Right|wx.EXPAND, 10)
-        sizer.Add(btn_closeApp, 0,wx.Left|wx.Right|wx.EXPAND, 10)
+        sizer.Add(btn_uninstallApp, 0,wx.Left|wx.Right|wx.EXPAND, 10)
+        sizer.Add(btn_restartApp, 0,wx.Left|wx.Right|wx.EXPAND, 10)
         parent.SetSizer(sizer)
         parent.Layout()
 
@@ -228,13 +250,91 @@ class YMUIWindow(wx.Frame):
     #刷新
     def OnUpdate(self, evt):
         self.ymNetWorker.update()
+
     #启动App
     def OnBtn_OpenApp(self, evt):
         wx.LogMessage(u"启动App" )
+        selIDs = self.list.getSelItemList()
+        if len(selIDs) == 0:
+            self.showTipDialog(u"请选择操作的设备(ˇˍˇ) ")
+            return
+        else:
+            self.showInputDialog("StartApp", u"请输入APP包名(＾－＾)")
 
-    #关闭App
-    def OnBtn_CloseApp(self, evt):
-         wx.LogMessage(u"关闭App" )
+    #卸载App
+    def OnBtn_UninstallApp(self, evt):
+        wx.LogMessage(u"卸载App" )
+        selIDs = self.list.getSelItemList()
+        if len(selIDs) == 0:
+            self.showTipDialog(u"请选择操作的设备(ˇˍˇ) ")
+            return
+        else:
+            self.showInputDialog("UninstallApp", u"请输入APP包名(＾－＾)")
+    #下载App
+    def OnBtn_DownApp(self, evt):
+        wx.LogMessage(u"下载App" )
+        selIDs = self.list.getSelItemList()
+        if len(selIDs) == 0:
+            self.showTipDialog(u"请选择操作的设备(ˇˍˇ) ")
+            return
+        else:
+            self.showInputDialog("DownApp", u"请输入下载的URL(＾－＾)")
+
+    #安装App
+    def OnBtn_InstallApp(self, evt):
+        wx.LogMessage(u"安装App" )
+        selIDs = self.list.getSelItemList()
+        if len(selIDs) == 0:
+            self.showTipDialog(u"请选择操作的设备(ˇˍˇ) ")
+            return
+        else:
+            self.showInputDialog("InstallApp", u"请输入APP文件名(＾－＾)")
+
+    #重启App
+    def OnBtn_RestartApp(self, evt):
+        wx.LogMessage(u"重启App" )
+        selIDs = self.list.getSelItemList()
+        if len(selIDs) == 0:
+            self.showTipDialog(u"请选择操作的设备(ˇˍˇ) ")
+            return
+        else:
+            selIDs = self.list.getSelItemList()
+            for id in selIDs:
+                self.ymNetWorker.restartApp(id)
+
+    #提示框
+    def showTipDialog(self, tip):
+        dlg = wx.MessageDialog(self, tip,
+                               u"提示",
+                               wx.OK | wx.ICON_INFORMATION
+                               #wx.YES_NO | wx.NO_DEFAULT | wx.CANCEL | wx.ICON_INFORMATION
+                               )
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    #显示输入框
+    def showInputDialog(self,title, tip):
+        dlg = wx.TextEntryDialog(
+                self, tip,
+                title, 'Python')
+        dlg.SetValue("")
+        if dlg.ShowModal() == wx.ID_OK:
+            dofunc = None
+            if title == "DownApp":
+                dofunc = self.ymNetWorker.downLoadFile
+            elif title == "InstallApp":
+                 dofunc = self.ymNetWorker.installApp
+            elif title == "UninstallApp":
+                 dofunc = self.ymNetWorker.uninstallApp
+            elif title == "StartApp":
+                 dofunc = self.ymNetWorker.startApp
+            else:
+                dofunc = None
+            if dofunc != None:
+                selIDs = self.list.getSelItemList()
+                for id in selIDs:
+                    dofunc(id, dlg.GetValue().encode("utf-8"))
+        dlg.Destroy()
 
     #客户端连接
     def on_ClientConnectEvent(self, event):

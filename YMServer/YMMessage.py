@@ -29,10 +29,16 @@ class YMMessage:
     C_MIN                               = 1000
     C_CheckAlive                        = C_MIN + 1
     C_DeviceInfo                        = C_MIN + 2
+    C_OperatorResult 	                = C_MIN + 3
 
     S_MIN                               = 2000
     S_CheckAlive                        = S_MIN + 1
     S_DeviceInfo                        = S_MIN + 2
+    S_DownLoad                          = S_MIN + 3
+    S_InstallApp                        = S_MIN + 4
+    S_UninstallApp                      = S_MIN + 5
+    S_StartApp                          = S_MIN + 6
+    S_ReStartApp                        = S_MIN + 7
 
     def __init__(self, jsonMsg):
         self.jsonMsg = jsonMsg
@@ -81,4 +87,28 @@ class YMMessage:
         s = json.dumps(p,ensure_ascii=False)
         return  s
 
-
+    @staticmethod
+    def Make_S_DownLoade(url):
+        p = {'id':YMMessage.S_DownLoad, "url":url}
+        s = json.dumps(p,ensure_ascii=False)
+        return  s
+    @staticmethod
+    def Make_S_InstallApp(filename):
+        p = {'id':YMMessage.S_InstallApp, "filename":filename}
+        s = json.dumps(p,ensure_ascii=False)
+        return  s
+    @staticmethod
+    def Make_S_UnInstallApp(packagename):
+        p = {'id':YMMessage.S_UninstallApp, "packagename":packagename}
+        s = json.dumps(p,ensure_ascii=False)
+        return  s
+    @staticmethod
+    def Make_S_ReStartApp():
+        p = {'id':YMMessage.S_ReStartApp}
+        s = json.dumps(p,ensure_ascii=False)
+        return  s
+    @staticmethod
+    def Make_S_StartApp(packagename):
+        p = {'id':YMMessage.S_StartApp, "packagename":packagename}
+        s = json.dumps(p,ensure_ascii=False)
+        return  s

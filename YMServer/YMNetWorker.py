@@ -37,6 +37,7 @@ class YMNetWorker:
         self.dispatcher.addListener(YMEvent.ID_Log, self.on_LogEvent)
         self.dispatcher.addListener(YMMessage.C_DeviceInfo, self.on_C_DevInfo)
         self.dispatcher.addListener(YMMessage.C_CheckAlive, self.on_C_CheckAlive)
+        self.dispatcher.addListener(YMMessage.C_OperatorResult, self.on_C_OperatorResult)
     #启动
     def start(self):
         self.workThread = YMNetThread(self.threadArgs)
@@ -157,14 +158,14 @@ class YMNetWorker:
         message = event.getArg("message")
         jsonMsg = YMMessage.Make_S_CheckAlive()
         self.sendMessage(clientId, YMMessage(jsonMsg))
-        self.log(u'on_C_DevInfo client Id: %d Message:%s ' % (clientId ,message.jsonMsg))
+        #self.log(u'on_C_DevInfo client Id: %d Message:%s ' % (clientId ,message.jsonMsg))
 
     #APP设备信息
     def on_C_DevInfo(self, event):
         clientId = event.getArg("clientId")
         message = event.getArg("message")
         content = message.content
-        self.log(u'on_C_DevInfo client Id: %d Message:%s ' % (clientId ,message.jsonMsg))
+        #self.log(u'on_C_DevInfo client Id: %d Message:%s ' % (clientId ,message.jsonMsg))
         deviceId = content["deviceId"]
         phoneBrand = content["phoneBrand"]
         phoneModel = content["phoneModel"]
@@ -187,3 +188,37 @@ class YMNetWorker:
 
         jsonMsg = YMMessage.Make_S_DeviceInfo(1)
         self.sendMessage(clientId, YMMessage(jsonMsg))
+
+    #操作结果
+    def on_C_OperatorResult(self, event):
+        clientId = event.getArg("clientId")
+        message = event.getArg("message")
+        content = message.content
+        result = content["result"]
+        data = self.getClientData(clientId)
+        if data != None:
+            data["message"] = result
+            event = YMEvent(YMEvent.ID_RefreshClientInfo)
+            event.addArg("clientId", clientId)
+            self.dispatcher.dispatchEvent(event)
+
+    def downLoadFile(self,clientId, url):
+        msg = YMMessage.Make_S_DownLoade(url)
+        self.sendMessage(clientId, YMMessage(msg))
+
+    def installApp(self,clientId, filename):
+        msg = YMMessage.Make_S_InstallApp(filename)
+        self.sendMessage(clientId, YMMessage(msg))
+
+    def uninstallApp(self,clientId, packagename):
+        msg = YMMessage.Make_S_UnInstallApp(packagename)
+        self.sendMessage(clientId, YMMessage(msg))
+
+    def restartApp(self,clientId):
+        msg = YMMessage.Make_S_ReStartApp()
+        self.sendMessage(clientId, YMMessage(msg))
+
+    def startApp(self,clientId, packagename):
+        msg = YMMessage.Make_S_StartApp(packagename)
+        self.sendMessage(clientId, YMMessage(msg))
+
