@@ -205,6 +205,46 @@ public class YMNetWorker {
 				on_S_DeviceInfo(event);
 			}
 		});
+
+		_dispatcher.addListener(YMMessage.S_DownLoad, new YMEvent.OnListener() {
+			@Override
+			public void onEvent(YMEvent event) {
+
+				on_S_DownLoad(event);
+			}
+		});
+
+		_dispatcher.addListener(YMMessage.S_InstallApp, new YMEvent.OnListener() {
+			@Override
+			public void onEvent(YMEvent event) {
+
+				on_S_InstallApp(event);
+			}
+		});
+		_dispatcher.addListener(YMMessage.S_UninstallApp, new YMEvent.OnListener() {
+			@Override
+			public void onEvent(YMEvent event) {
+
+				on_S_UninstallApp(event);
+			}
+		});
+
+		_dispatcher.addListener(YMMessage.S_StartApp, new YMEvent.OnListener() {
+			@Override
+			public void onEvent(YMEvent event) {
+
+				on_S_StartApp(event);
+			}
+		});
+
+		_dispatcher.addListener(YMMessage.S_ReStartApp, new YMEvent.OnListener() {
+			@Override
+			public void onEvent(YMEvent event) {
+
+				on_S_ReStartApp(event);
+			}
+		});
+
 	}
 
 	private void handMessage() 
@@ -263,6 +303,74 @@ public class YMNetWorker {
 			} catch (JSONException e) {
 				e.printStackTrace();
 			}
+		}
+	}
+
+	private void on_S_DownLoad(YMEvent event)
+	{
+		YMMessage message = (YMMessage)event.getAttr("message");
+		if (message != null)
+		{
+			JSONObject obj = message.getJsonObj();
+			try {
+				String url = obj.getString("url");
+				MainActivity.instance.sendDownLoadTask(url);
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	private void on_S_InstallApp(YMEvent event)
+	{
+		YMMessage message = (YMMessage)event.getAttr("message");
+		if (message != null)
+		{
+			JSONObject obj = message.getJsonObj();
+			try {
+				String filename = obj.getString("filename");
+				MainActivity.instance.sendInstallAppTask(filename);
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	private void on_S_UninstallApp(YMEvent event)
+	{
+		YMMessage message = (YMMessage)event.getAttr("message");
+		if (message != null)
+		{
+			JSONObject obj = message.getJsonObj();
+			try {
+				String packagename = obj.getString("packagename");
+				MainActivity.instance.sendUnInstallAppTask(packagename);
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	private void on_S_StartApp(YMEvent event)
+	{
+		YMMessage message = (YMMessage)event.getAttr("message");
+		if (message != null)
+		{
+			JSONObject obj = message.getJsonObj();
+			try {
+				String packagename = obj.getString("packagename");
+				MainActivity.instance.sendStartAppTask(packagename);
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	private void on_S_ReStartApp(YMEvent event)
+	{
+		YMMessage message = (YMMessage)event.getAttr("message");
+		if (message != null)
+		{
+			MainActivity.instance.sendRestartAppTask();
 		}
 	}
 }

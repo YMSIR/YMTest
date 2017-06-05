@@ -23,6 +23,7 @@ public class YMTaskManager extends Thread {
         _taskQueue = new LinkedList<YMTask>();
         _isRun = false;
         _curTask = null;
+        YMUtil.checkRootPermission();
     }
 
     public void start()
@@ -62,6 +63,7 @@ public class YMTaskManager extends Thread {
             }
             else
             {
+                YMUtil.log(_curTask.desc);
                 switch (_curTask.taskType)
                 {
                     case DownLoadString:
@@ -73,41 +75,37 @@ public class YMTaskManager extends Thread {
                     }
                     case DownLoadFile:
                     {
-                        YMUtil.checkFileRootDir();
-                        YMDownLoader downLoader = new YMDownLoader(_curTask.mainName);
-                        String fileName = YMUtil.geneFileNameFromUrl(_curTask.mainName);
-                        downLoader.down2sd(fileName, _curTask);
+                        handleDownLoadFile(_curTask.mainName);
                         _curTask.finish();
                     }
                     break;
                     case OpenAPP:
                     {
-                        YMUtil.startAPP(_curTask.mainName);
+                        handleStartApp(_curTask.mainName);
                         _curTask.finish();
                     }
                     break;
                     case CloseAPP:
                     {
-                        ActivityManager manager = (ActivityManager) MainActivity.instance.getSystemService(Context.ACTIVITY_SERVICE);
-                        manager.killBackgroundProcesses(_curTask.mainName);
+                        handleCloseApp(_curTask.mainName);
                         _curTask.finish();
                     }
                     break;
                     case IntallAPP:
                     {
-                        YMUtil.silentInstall(_curTask.mainName);
+                        handleInstallApp(_curTask.mainName);
                         _curTask.finish();
                     }
                     break;
                     case UninstallAPP:
                     {
-                        YMUtil.uninstallAPK(_curTask.mainName);
+                        handleUninstallApp(_curTask.mainName);
                         _curTask.finish();
                     }
                     break;
                     case RestartAPP:
                     {
-                        YMUtil.restartAPP();
+                        handleRestartApp();
                         _curTask.finish();
                     }
                     break;
@@ -118,5 +116,110 @@ public class YMTaskManager extends Thread {
         }while (_isRun);
     }
 
+    private boolean handleInstallApp(String fileName)
+    {
+        int result =  YMUtil.installAPK(fileName);
+        if (result == 0)
+        {
+            MainActivity.instance.sendOperatorResult("安装" + fileName + "成功");
+            return true;
+        }
+        else if(result == 1)
+        {
+            MainActivity.instance.sendOperatorResult("安装" + fileName + "等待手动操作");
+            return false;
+        }
+        else
+        {
+            MainActivity.instance.sendOperatorResult("安装" + fileName + "失败");
+            return false;
+        }
+    }
 
+    private boolean handleUninstallApp(String packageName)
+    {
+        int result =  YMUtil.uninstallAPK(packageName);
+        if (result == 0)
+        {
+            MainActivity.instance.sendOperatorResult("卸载" + packageName + "成功");
+            return true;
+        }
+        else if(result == 1)
+        {
+            MainActivity.instance.sendOperatorResult("卸载" + packageName + "等待手动操作");
+            return false;
+        }
+        else
+        {
+            MainActivity.instance.sendOperatorResult("卸载" + packageName + "失败");
+            return false;
+        }
+    }
+
+    private boolean handleStartApp(String packageName)
+    {
+        boolean result =  YMUtil.startAPP(packageName);
+        if (result)
+        {
+            MainActivity.instance.sendOperatorResult("启动" + packageName + "成功");
+
+        }
+        else
+        {
+            MainActivity.instance.sendOperatorResult("启动" + packageName + "失败");
+        }
+        return result;
+    }
+
+    private boolean handleRestartApp()
+    {
+        boolean result =  YMUtil.restartAPP();
+        if (result)
+        {
+            MainActivity.instance.sendOperatorResult("重启"  + "成功");
+
+        }
+        else
+        {
+            MainActivity.instance.sendOperatorResult("重启"  + "失败");
+        }
+        return result;
+    }
+
+    private boolean handleCloseApp(String packageName)
+    {
+        boolean result =  YMUtil.closeAPP(packageName);
+        if (result)
+        {
+            MainActivity.instance.sendOperatorResult("关闭" + packageName + "成功");
+
+        }
+        else
+        {
+            MainActivity.instance.sendOperatorResult("关闭" + packageName + "失败");
+        }
+        return result;
+    }
+
+    private boolean handleDownLoadFile(String url)
+    {
+        YMUtil.checkFileRootDir();
+        YMDownLoader downLoader = new YMDownLoader(url);
+        String fileName = YMUtil.geneFileNameFromUrl(url);
+        boolean result = downLoader.down2sd(fileName, _curTask);
+        if (result == true)
+        {
+            MainActivity.instance.sendOperatorResult("下载" + fileName + "成功");
+            String suffix = fileName.substring(fileName.lastIndexOf(".") + 1);
+            if (suffix == "apk")
+            {
+                handleInstallApp(fileName);
+            }
+        }
+        else
+        {
+            MainActivity.instance.sendOperatorResult("下载" + fileName + "失败");
+        }
+        return result;
+    }
 }

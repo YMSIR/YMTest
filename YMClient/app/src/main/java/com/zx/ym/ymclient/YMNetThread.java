@@ -126,7 +126,8 @@ public class YMNetThread extends Thread {
 		} 
 		catch (Exception e) 
 		{
-			YMUtil.log(e.getMessage());
+			//YMUtil.log(e.getMessage());
+			e.printStackTrace();
 		}
 	}
 	
@@ -151,6 +152,7 @@ public class YMNetThread extends Thread {
 							byte[] content = new byte[contentSize];
 							System.arraycopy(_recvBuffer, header.size, content, 0, contentSize);
 							String jsonContent = new String(content);
+							YMUtil.log(jsonContent);
 							YMMessage message = new YMMessage(jsonContent);
 							message.decode();
 							_args.worker.putRecvMessageQueue(message);
@@ -170,8 +172,8 @@ public class YMNetThread extends Thread {
 				}
 			}
 			else
-			{	
-				YMUtil.log( "read " + readSize);
+			{
+				//YMUtil.log( "read " + readSize);
 			}
 
 		} 

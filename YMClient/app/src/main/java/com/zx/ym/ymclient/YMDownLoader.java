@@ -80,7 +80,7 @@ public class YMDownLoader {
      * 前提需要设置模拟器sd卡容量，否则会引发EACCES异常
      * 先创建文件夹，在创建文件
      */
-    public int down2sd(String filename, YMTask task)
+    public boolean down2sd(String filename, YMTask task)
     {
         File file =  YMUtil.createSDFile(filename);
         FileOutputStream fos = null;
@@ -101,7 +101,7 @@ public class YMDownLoader {
             }
             is.close();
         } catch (Exception e) {
-            return 0;
+            return false;
         } finally {
             try {
                 if (fos != null)
@@ -110,6 +110,6 @@ public class YMDownLoader {
                 e.printStackTrace();
             }
         }
-        return 1;
+        return true;
     }
 }

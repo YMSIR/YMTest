@@ -23,6 +23,7 @@ public class YMTask {
     public int progress;
     public boolean isFinished;
     public String result;
+    public String desc;
     public OnFinishListener finishListener;
 
     interface OnFinishListener
@@ -36,6 +37,7 @@ public class YMTask {
         mainName = "";
         progress = 0;
         result = "";
+        desc = "";
         isFinished = false;
         finishListener = null;
     }
@@ -49,5 +51,48 @@ public class YMTask {
             finishListener.onFinish(this);
         }
     }
+
+    public void geneDescString()
+    {
+        switch (taskType)
+        {
+            case DownLoadString:
+            {
+                desc = "下载服务器地址";
+                break;
+            }
+            case DownLoadFile:
+            {
+                desc = "下载文件:" + mainName;
+            }
+            break;
+            case OpenAPP:
+            {
+                desc = "打开App:" + mainName;
+            }
+            break;
+            case CloseAPP:
+            {
+                desc = "关闭App:" + mainName;
+            }
+            break;
+            case IntallAPP:
+            {
+                desc = "安装App:" + mainName;
+            }
+            break;
+            case UninstallAPP:
+            {
+                desc = "卸载App:" + mainName;
+            }
+            break;
+            case RestartAPP:
+            {
+                desc = "重启App";
+            }
+            break;
+        }
+    }
+
 
 }

@@ -131,29 +131,36 @@
             android:layout_marginTop="10dp"
             android:progress="10" />
 
-        <Button
-            android:text="下载"
+        <LinearLayout
+            android:orientation="vertical"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:id="@+id/button_down" />
+            android:id="@+id/Layout_test">
 
-        <Button
-            android:text="安装"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/button_install" />
+            <Button
+                android:text="下载"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/button_down" />
 
-        <Button
-            android:text="启动"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/button_start" />
+            <Button
+                android:text="安装"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/button_install" />
 
-        <Button
-            android:text="卸载"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/button_uninstall" />
+            <Button
+                android:text="启动"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/button_start" />
+
+            <Button
+                android:text="卸载"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/button_uninstall" />
+        </LinearLayout>
 
         <LinearLayout
             android:orientation="vertical"

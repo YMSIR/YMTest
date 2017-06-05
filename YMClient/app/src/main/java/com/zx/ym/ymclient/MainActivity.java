@@ -4,24 +4,18 @@ package com.zx.ym.ymclient;
  * Created by zhangxinwei02 on 2017/5/31.
  */
 
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.logging.LogRecord;
 
-import android.app.Notification;
 import android.os.Bundle;
 import android.app.Activity;
 import android.text.method.ScrollingMovementMethod;
-import android.view.Menu;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import org.json.JSONObject;
-import org.w3c.dom.ProcessingInstruction;
+import java.util.Date;
+import java.text.SimpleDateFormat;
 
-import android.os.Message;
-import android.os.Handler;
 
 public class MainActivity extends Activity {
 
@@ -62,6 +56,7 @@ public class MainActivity extends Activity {
         _taskManager.start();
         YMTask task = new YMTask(YMTaskType.DownLoadString);
         task.mainName = _serverInfoURL;
+        task.geneDescString();
         task.finishListener = new YMTask.OnFinishListener()
         {
             @Override
@@ -79,7 +74,6 @@ public class MainActivity extends Activity {
         _dispatcher.addListener(YMEvent.ID_GetServerInfoSuccess, new YMEvent.OnListener() {
             @Override
             public void onEvent(YMEvent event) {
-
                 on_GetServerInfoSuccessEvent(event);
             }
         });
@@ -88,6 +82,13 @@ public class MainActivity extends Activity {
             public void onEvent(YMEvent event) {
 
                 on_UpdateUIEvent(event);
+            }
+        });
+        _dispatcher.addListener(YMEvent.ID_Log, new YMEvent.OnListener() {
+            @Override
+            public void onEvent(YMEvent event) {
+
+                on_LogEvent(event);
             }
         });
     }
@@ -136,6 +137,7 @@ public class MainActivity extends Activity {
         _view_loading = findViewById(R.id.view_loading);
         _textView_log =(TextView) findViewById(R.id.textView_log);
         _textView_log.setMovementMethod(ScrollingMovementMethod.getInstance());
+        _textView_log.setText("");
         _textView_serverIP =(TextView) findViewById(R.id.textView_serverip);
         _textView_serverPort =(TextView) findViewById(R.id.textView_serverport);
         _textView_clientIP =(TextView) findViewById(R.id.textView_clientip);
@@ -147,18 +149,60 @@ public class MainActivity extends Activity {
         testButtons();
     }
 
+    public void sendDownLoadTask(String url)
+    {
+        YMTask task = new YMTask(YMTaskType.DownLoadFile);
+        task.mainName = url;
+        task.geneDescString();
+        _taskManager.addTask(task);
+    }
+
+    public void sendInstallAppTask(String fileName)
+    {
+        YMTask task = new YMTask(YMTaskType.IntallAPP);
+        task.mainName = fileName;
+        task.geneDescString();
+        _taskManager.addTask(task);
+    }
+
+    public void sendUnInstallAppTask(String packageName)
+    {
+        YMTask task = new YMTask(YMTaskType.UninstallAPP);
+        task.mainName = packageName;
+        task.geneDescString();
+        _taskManager.addTask(task);
+    }
+
+    public void sendStartAppTask(String packageName)
+    {
+        YMTask task = new YMTask(YMTaskType.OpenAPP);
+        task.mainName = packageName;
+        task.geneDescString();
+        _taskManager.addTask(task);
+    }
+
+    public void sendRestartAppTask()
+    {
+        YMTask task = new YMTask(YMTaskType.RestartAPP);
+        task.geneDescString();
+        _taskManager.addTask(task);
+    }
+
     // 测试
     private void testButtons()
     {
+        View view = findViewById(R.id.Layout_test);
+        view.setVisibility(View.GONE);
         final String testApp = "com.test.ymclient";
         final String nameApp = "YMClient.apk";
-        final String urlAPK = "http://code.taobao.org/svn/YMFile/YMClient.apk";
+        final String urlAPK = "http://dldir1.qq.com/android/weizhuan/qq.hlwg_v1.10.apk";
         Button install = (Button)findViewById(R.id.button_install);
         install.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 YMTask task = new YMTask(YMTaskType.IntallAPP);
                 task.mainName = nameApp;
+                task.geneDescString();
                 _taskManager.addTask(task);
             }
         });
@@ -168,6 +212,7 @@ public class MainActivity extends Activity {
             public void onClick(View view) {
                 YMTask task = new YMTask(YMTaskType.UninstallAPP);
                 task.mainName = testApp;
+                task.geneDescString();
                 _taskManager.addTask(task);
             }
         });
@@ -177,6 +222,7 @@ public class MainActivity extends Activity {
             public void onClick(View view) {
                 YMTask task = new YMTask(YMTaskType.DownLoadFile);
                 task.mainName = urlAPK;
+                task.geneDescString();
                 _taskManager.addTask(task);
             }
         });
@@ -184,8 +230,9 @@ public class MainActivity extends Activity {
         start.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                YMTask task = new YMTask(YMTaskType.OpenAPP);
+                YMTask task = new YMTask(YMTaskType.CloseAPP);
                 task.mainName = testApp;
+                task.geneDescString();
                 _taskManager.addTask(task);
             }
         });
@@ -212,7 +259,13 @@ public class MainActivity extends Activity {
     {
         if(_textView_log != null)
         {
-            _textView_log.append(str + "\n");
+            SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
+            String date = df.format(new Date());
+            str = date + ":" + str + "\n";
+            //_textView_log.append(str + "\n");
+            String text = _textView_log.getText().toString();
+            text = str + text;
+            _textView_log.setText(text);
         }
     }
 
@@ -236,6 +289,14 @@ public class MainActivity extends Activity {
     {
         YMEvent ymEvent = new YMEvent(YMEvent.ID_GetServerInfoSuccess);
         _dispatcher.dispatchInMainThread(ymEvent);
+    }
+
+    // 发送操作结果
+    public void sendOperatorResult(String result)
+    {
+        String msg = YMMessage.Make_C_OperatorResult(result);
+        _netWorker.sendMessage(new YMMessage(msg));
+        YMUtil.log(result);
     }
 
     // 刷新
@@ -282,7 +343,7 @@ public class MainActivity extends Activity {
         YMTask task = _taskManager.getCurTask();
         if (task != null)
         {
-            _textView_curTask.setText("正在进行");
+            _textView_curTask.setText(task.desc);
             _progressBar_task.setVisibility(View.VISIBLE);
             _progressBar_task.setProgress(task.progress);
         }
@@ -310,6 +371,5 @@ public class MainActivity extends Activity {
         updateUIServerInfo();
         updateUIState();
     }
-
 
 }

@@ -49,14 +49,19 @@ class YMPacketHeader
 
 public class YMMessage {
 	
-	public final static int C_MIN 			= 1000;
-	public final static int C_CheckAlive 	= C_MIN + 1;
-	public final static int C_DeviceInfo 	= C_MIN + 2;
+	public final static int C_MIN 				= 1000;
+	public final static int C_CheckAlive 		= C_MIN + 1;
+	public final static int C_DeviceInfo 		= C_MIN + 2;
+	public final static int C_OperatorResult 	= C_MIN + 3;
 	
-	
-	public final static int S_MIN 			= 2000;
-	public final static int S_CheckAlive 	= S_MIN + 1;
-	public final static int S_DeviceInfo 	= S_MIN + 2;
+	public final static int S_MIN 				= 2000;
+	public final static int S_CheckAlive 		= S_MIN + 1;
+	public final static int S_DeviceInfo 		= S_MIN + 2;
+	public final static int S_DownLoad         = S_MIN + 3;
+	public final static int S_InstallApp      	= S_MIN + 4;
+	public final static int S_UninstallApp    	= S_MIN + 5;
+	public final static int S_StartApp         = S_MIN + 6;
+	public final static int S_ReStartApp      	= S_MIN + 7;
 	
 	
 	private int _messageId;
@@ -118,6 +123,11 @@ public class YMMessage {
 		String formateStr = "{\"id\":%d,\"deviceId\":\"%s\",\"phoneBrand\":\"%s\",\"phoneModel\":\"%s\",\"version\":\"%s\"}";
 		return String.format( formateStr,C_DeviceInfo, deviceId, phoneBrand, phoneModel, version);
 	}
-	
+
+	public static String Make_C_OperatorResult(String result)
+	{
+		String formateStr = "{\"id\":%d,\"deviceId\":\"%s\"}";
+		return String.format( formateStr,C_CheckAlive, result);
+	}
 	
 }

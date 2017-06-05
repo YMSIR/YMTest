@@ -4,10 +4,12 @@ package com.zx.ym.ymclient;
  * Created by zhangxinwei02 on 2017/5/31.
  */
 
+import android.app.ActivityManager;
 import android.os.Environment;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.UserHandle;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.content.Intent;
@@ -15,6 +17,8 @@ import android.net.Uri;
 import java.io.File;
 import java.io.IOException;
 import android.content.pm.*;
+
+import java.lang.reflect.Method;
 import java.net.*;
 import java.util.*;
 import android.net.wifi.*;
@@ -25,6 +29,11 @@ public class YMUtil {
 
 	// 下载缓存目录
 	public static String fileRootPath = Environment.getExternalStorageDirectory() + "/YMClient/" ;
+	private final static int kSystemRootStateUnknow = -1;
+	private final static int kSystemRootStateDisable = 0;
+	private final static int kSystemRootStateEnable = 1;
+	private static int systemRootState = kSystemRootStateUnknow;
+	private  static boolean isHasRootPermission = false;
 
 	// 获取设备ID
     public static String getDeviceId(Context context) {
@@ -91,8 +100,8 @@ public class YMUtil {
 
 	// 日志输出
 	public static void log(String message) {
-		Log.i("YMClient", message);
-		//MainActivity.instance.log(message);
+		//Log.i("YMClient", message);
+		MainActivity.instance.sendLogEvent(message);
 	}
 
 	// 检测目录是否存在
@@ -189,57 +198,194 @@ public class YMUtil {
 				(ip >> 24 & 0xFF);
 	}
 
-	// 安装APP
-	public static void installAPK(String apkFilePath) {
-		// TODO Auto-generated method stub
-		// 安装程序的apk文件路径
-		String fileName = fileRootPath + apkFilePath;
-		// 创建URI
-		Uri uri = Uri.fromFile(new File(fileName));
-		// 创建Intent意图
-		Intent intent = new Intent(Intent.ACTION_VIEW);
-		// 设置Uri和类型
-		intent.setDataAndType(uri, "application/vnd.android.package-archive");
-		// 执行意图进行安装
-		MainActivity.instance.startActivity(intent);
+	// 是否ROOT
+	public static boolean isRootSystem() {
+		if (systemRootState == kSystemRootStateEnable) {
+			return true;
+		} else if (systemRootState == kSystemRootStateDisable) {
+			return false;
+		}
+		File f = null;
+		final String kSuSearchPaths[] = { "/system/bin/", "/system/xbin/",
+				"/system/sbin/", "/sbin/", "/vendor/bin/" };
+		try {
+			for (int i = 0; i < kSuSearchPaths.length; i++) {
+				f = new File(kSuSearchPaths[i] + "su");
+				if (f != null && f.exists()) {
+					systemRootState = kSystemRootStateEnable;
+					return true;
+				}
+			}
+		} catch (Exception e) {
+		}
+		systemRootState = kSystemRootStateDisable;
+		return false;
 	}
 
-	// 卸载APP
-	public static void uninstallAPK(String packageName) {
-		// TODO Auto-generated method stub
-		// 通过程序的报名创建URI
-		Uri packageURI = Uri.parse("package:" + packageName);
-		// 创建Intent意图
-		Intent intent = new Intent(Intent.ACTION_DELETE);
-		intent.setData(packageURI);
-		// 执行卸载程序
-		MainActivity.instance.startActivity(intent);
+	// 获取ROOT权限
+	public static void checkRootPermission()
+	{
+		if (isRootSystem() == false)
+		{
+			return;
+		}
+
+		int result = -1;
+		DataOutputStream dos = null;
+		try {
+			Process p = Runtime.getRuntime().exec("su");
+			dos = new DataOutputStream(p.getOutputStream());
+			dos.writeBytes("exit\n");
+			dos.flush();
+			p.waitFor();
+			result = p.exitValue();
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if (dos != null) {
+				try {
+					dos.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		if (result == 0)
+		{
+			isHasRootPermission = true;
+		}
+	}
+
+	// 安装APP -1失败 0成功 1等待
+	public static int installAPK(String apkFile) {
+
+		// 安装程序的apk文件路径
+		String fileName = fileRootPath + apkFile;
+		File file =	new File(fileName);
+		if (file.exists() == false)
+		{
+			return -1;
+		}
+		if (isHasRootPermission)
+		{
+			return silentInstall(apkFile);
+		}
+		else
+		{
+			// 创建URI
+			Uri uri = Uri.fromFile(file);
+			// 创建Intent意图
+			Intent intent = new Intent(Intent.ACTION_VIEW);
+			// 设置Uri和类型
+			intent.setDataAndType(uri, "application/vnd.android.package-archive");
+			// 执行意图进行安装
+			MainActivity.instance.startActivity(intent);
+			return 1;
+		}
+	}
+
+	// 卸载APP -1失败 0成功 1等待
+	public static int uninstallAPK(String packageName) {
+
+		if (isHasRootPermission)
+		{
+			return silentUninstall(packageName);
+		}
+		else
+		{
+			// 通过程序的报名创建URI
+			Uri packageURI = Uri.parse("package:" + packageName);
+			// 创建Intent意图
+			Intent intent = new Intent(Intent.ACTION_DELETE);
+			intent.setData(packageURI);
+			// 执行卸载程序
+			MainActivity.instance.startActivity(intent);
+			return 1;
+		}
+	}
+
+	// 包名是否存在
+	public static boolean isAvilible(String packageName) {
+		PackageManager packageManager = MainActivity.instance.getPackageManager();
+
+		//获取手机系统的所有APP包名，然后进行一一比较
+		List<PackageInfo> pinfo = packageManager.getInstalledPackages(0);
+		for (int i = 0; i < pinfo.size(); i++) {
+			if (((PackageInfo) pinfo.get(i)).packageName
+					.equalsIgnoreCase(packageName))
+				return true;
+		}
+		return false;
 	}
 
 	// 启动APP
-	public static void startAPP(String packageName)
+	public static boolean startAPP(String packageName)
 	{
+		if (!isAvilible(packageName))
+		{
+			return false;
+		}
 		try {
 			PackageManager packageManager = MainActivity.instance.getPackageManager();
 			Intent intent = packageManager.getLaunchIntentForPackage(packageName);
 			MainActivity.instance.startActivity(intent);
+			return true;
 		} catch (Exception e) {
 			log(e.getMessage());
 		}
+		return false;
+	}
+
+	public static boolean closeAPP(String packageName)
+	{
+		ActivityManager manager = (ActivityManager) MainActivity.instance.getSystemService(Context.ACTIVITY_SERVICE);
+		manager.killBackgroundProcesses(packageName);
+		return true;
 	}
 
 	// 重启APP
-	public static void restartAPP()
+	public static boolean restartAPP()
 	{
 		Intent intent = MainActivity.instance.getPackageManager()
 				.getLaunchIntentForPackage(MainActivity.instance.getPackageName());
 		intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 		MainActivity.instance.startActivity(intent);
+		return true;
 	}
 
+	// 静默安装
 	public static int silentInstall(String apkFile) {
 		String apkAbsolutePath = fileRootPath + apkFile;
 		String cmd = "pm install -r " + apkAbsolutePath;
+		int result = -1;
+		DataOutputStream dos = null;
+
+		try {
+			Process p = Runtime.getRuntime().exec("su");
+			dos = new DataOutputStream(p.getOutputStream());
+			dos.writeBytes(cmd + "\n");
+			dos.flush();
+			dos.writeBytes("exit\n");
+			dos.flush();
+			p.waitFor();
+			result = p.exitValue();
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if (dos != null) {
+				try {
+					dos.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		return result;
+	}
+
+	// 静默卸载
+	public static int silentUninstall(String packageName) {
+		String cmd = "pm uninstall -k " + packageName;
 		int result = -1;
 		DataOutputStream dos = null;
 
