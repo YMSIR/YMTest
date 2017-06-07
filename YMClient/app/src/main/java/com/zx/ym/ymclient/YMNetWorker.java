@@ -135,6 +135,14 @@ public class YMNetWorker {
 		_netThread.start();
 	}
 
+	public void quit()
+	{
+		_netThread.disconnect();
+		_netThread.quit();
+		_netThread = null;
+	}
+
+
 	public String getServerIP()
 	{
 		return _ip;

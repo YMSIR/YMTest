@@ -42,6 +42,7 @@ public class YMTaskManager extends Thread {
         synchronized (_taskQueue) {
 
              _taskQueue.offer(task);
+            _taskQueue.notify();
         }
     }
 
@@ -59,7 +60,17 @@ public class YMTaskManager extends Thread {
             _curTask = popTask();
             if (_curTask == null)
             {
-
+                try
+                {
+                    synchronized (_taskQueue)
+                    {
+                        _taskQueue.wait();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    ex.printStackTrace();
+                }
             }
             else
             {
@@ -173,11 +184,11 @@ public class YMTaskManager extends Thread {
 
     private boolean handleRestartApp()
     {
+        MainActivity.instance.quit();
         boolean result =  YMUtil.restartAPP();
         if (result)
         {
             MainActivity.instance.sendOperatorResult("重启"  + "成功");
-
         }
         else
         {
@@ -211,7 +222,7 @@ public class YMTaskManager extends Thread {
         {
             MainActivity.instance.sendOperatorResult("下载" + fileName + "成功");
             String suffix = fileName.substring(fileName.lastIndexOf(".") + 1);
-            if (suffix == "apk")
+            if (suffix.equals("apk"))
             {
                 handleInstallApp(fileName);
             }

@@ -99,15 +99,15 @@ public class YMMessage {
 	
 	public byte[] getBytes()
 	{
-		short dataLen = (short) (_jsonContent.length() + YMPacketHeader.size);
+		byte[] contentBytes =  _jsonContent.getBytes();
+		short dataLen = (short) (contentBytes.length + YMPacketHeader.size);
 		YMPacketHeader header = new YMPacketHeader();
 		header.sign = YMPacketHeader.PACKET_SIGN;
 		header.len = dataLen;
 		byte[] data = new byte[dataLen];
-		byte[] temp = header.getBytes();
-		System.arraycopy(temp, 0, data, 0, header.size);
-		temp = _jsonContent.getBytes();
-		System.arraycopy(temp, 0, data, header.size, _jsonContent.length());
+		byte[] headerBytes = header.getBytes();
+		System.arraycopy(headerBytes, 0, data, 0, header.size);
+		System.arraycopy(contentBytes, 0, data, header.size, contentBytes.length);
 		
 		return data;
 	}
@@ -126,8 +126,8 @@ public class YMMessage {
 
 	public static String Make_C_OperatorResult(String result)
 	{
-		String formateStr = "{\"id\":%d,\"deviceId\":\"%s\"}";
-		return String.format( formateStr,C_CheckAlive, result);
+		String formateStr = "{\"id\":%d,\"result\":\"%s\"}";
+		return String.format( formateStr,C_OperatorResult, result);
 	}
 	
 }

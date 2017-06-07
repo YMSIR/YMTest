@@ -127,7 +127,7 @@ public class YMNetThread extends Thread {
 		catch (Exception e) 
 		{
 			//YMUtil.log(e.getMessage());
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 	}
 	

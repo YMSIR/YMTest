@@ -47,7 +47,7 @@ class YMDevList(wx.ListCtrl, listmix.CheckListCtrlMixin, listmix.ListCtrlAutoWid
         self.InsertColumn(5, u"系统版本")
         self.InsertColumn(6, u"当前消息")
 
-        self.SetColumnWidth(0, 100)
+        self.SetColumnWidth(0, 50)
         self.SetColumnWidth(1, 100)
         self.SetColumnWidth(2, 120)
         self.SetColumnWidth(3, 100)
@@ -139,10 +139,7 @@ class YMUIWindow(wx.Frame):
     def __init__(self, parent, title):
 
         #网络
-        hostName = socket.gethostname()
-
-        localIP = socket.gethostbyname(socket.gethostname())
-        print(localIP)
+        localIP = YMUtil.getLocalIPByPrefix("172.")
         self.ymNetWorker = YMNetWorker(localIP, 8001, wx.LogMessage)
         self.ymNetWorker.start()
 
@@ -191,7 +188,7 @@ class YMUIWindow(wx.Frame):
 
         self.refreshDevList()
         self.initBindEvent()
-        wx.LogMessage(u"启动成功" )
+        wx.LogMessage(u"启动成功 当前IP地址:" + localIP )
 
     #初始化定时器
     def initTimer(self):

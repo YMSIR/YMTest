@@ -15,6 +15,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 
 
+
 public class YMDownLoader {
     /** 连接url */
     private String _urlstr;
@@ -44,7 +45,7 @@ public class YMDownLoader {
                 sb.append(temp);
             }
             br.close();
-            _urlcon.disconnect();
+            //_urlcon.disconnect();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -62,8 +63,11 @@ public class YMDownLoader {
             url = new URL(_urlstr);
             urlcon = (HttpURLConnection) url.openConnection();
             urlcon.setRequestProperty("Accept-Encoding", "identity");
-            urlcon.connect();
-            if (urlcon.getResponseCode() == 200)
+            urlcon.setConnectTimeout(3*1000);
+            urlcon.setReadTimeout(3*1000);
+            //urlcon.connect();
+            int result = urlcon.getResponseCode();
+            if (result == 200)
             {
                 _bufferLength = urlcon.getContentLength();
                 return urlcon;
@@ -90,10 +94,11 @@ public class YMDownLoader {
             byte[] buf = new byte[1024];
             int downSize = 0;
             int fileSize = _bufferLength;
-            while ((is.read(buf)) != -1)
+            int readlen = -1;
+            while ((readlen = is.read(buf)) != -1)
             {
-                fos.write(buf);
-                downSize += buf.length;
+                fos.write(buf, 0, readlen);
+                downSize += readlen;
                 if (fileSize != -1)
                 {
                     task.progress = (int)(downSize * 100.0 / fileSize);

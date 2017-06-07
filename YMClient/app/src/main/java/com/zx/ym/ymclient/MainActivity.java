@@ -17,6 +17,23 @@ import java.util.Date;
 import java.text.SimpleDateFormat;
 
 
+import android.Manifest;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Bundle;
+import android.provider.Settings;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatActivity;
+import android.widget.Toast;
+
+
+
 public class MainActivity extends Activity {
 
     public static MainActivity instance;
@@ -35,7 +52,8 @@ public class MainActivity extends Activity {
     private ProgressBar _progressBar_loading;
     private ProgressBar _progressBar_task;
     private final static String _serverInfoURL = "http://code.taobao.org/svn/YMFile/serverinfo.txt";
-
+    private final static String[] permissions = {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_PHONE_STATE};
+    private AlertDialog dialog;
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
@@ -43,10 +61,127 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         instance = this;
         initUIWidgets();
-        initNetWorker();
+        showLoadingUI();
+        boolean has = checkPermissions();
+        if (has)
+        {
+            start();
+        }
+    }
+
+    private void start()
+    {
         initTimerHandler();
         initBindListener();
-        showLoadingUI();
+        initNetWorker();
+    }
+
+
+    private boolean checkPermissions()
+    {
+        boolean isHasPermission = true;
+        // 版本判断。当手机系统大于 23 时，才有必要去判断权限是否获取
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+
+            for (int i = 0; i < permissions.length; ++i)
+            {
+                int result = ContextCompat.checkSelfPermission(this, permissions[i]);
+                if (result != PackageManager.PERMISSION_GRANTED)
+                {
+                    isHasPermission = false;
+                    break;
+                }
+            }
+        }
+        if (!isHasPermission)
+        {
+            startRequestPermission();
+        }
+        return isHasPermission;
+    }
+
+    // 开始提交请求权限
+    private void startRequestPermission() {
+        ActivityCompat.requestPermissions(this, permissions, 321);
+    }
+
+    // 用户权限 申请 的回调方法
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == 321) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                    // 判断用户是否 点击了不再提醒。(检测该权限是否还可以申请)
+                    boolean b = shouldShowRequestPermissionRationale(permissions[0]);
+                    if (!b) {
+                        // 用户还是想用我的 APP 的
+                        // 提示用户去应用设置界面手动开启权限
+                        showDialogTipUserGoToAppSettting();
+                    } else
+                        finish();
+                } else {
+                    start();
+                }
+            }
+        }
+    }
+
+    // 提示用户去应用设置界面手动开启权限
+
+    private void showDialogTipUserGoToAppSettting() {
+
+        dialog = new AlertDialog.Builder(this)
+                .setTitle("存储权限不可用")
+                .setMessage("请在-应用设置-权限-中，允许支付宝使用存储权限来保存用户数据")
+                .setPositiveButton("立即开启", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // 跳转到应用设置界面
+                        goToAppSetting();
+                    }
+                })
+                .setNegativeButton("取消", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        finish();
+                    }
+                }).setCancelable(false).show();
+    }
+
+    // 跳转到当前应用的设置界面
+    private void goToAppSetting() {
+        Intent intent = new Intent();
+
+        intent.setAction(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+        Uri uri = Uri.fromParts("package", getPackageName(), null);
+        intent.setData(uri);
+
+        startActivityForResult(intent, 123);
+    }
+
+    //
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 123) {
+
+            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                // 检查该权限是否已经获取
+                int i = ContextCompat.checkSelfPermission(this, permissions[0]);
+                // 权限是否已经 授权 GRANTED---授权  DINIED---拒绝
+                if (i != PackageManager.PERMISSION_GRANTED) {
+                    // 提示用户应该去应用设置界面手动开启权限
+                    showDialogTipUserGoToAppSettting();
+                } else {
+                    if (dialog != null && dialog.isShowing()) {
+                        dialog.dismiss();
+                    }
+                    Toast.makeText(this, "权限获取成功", Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
     }
 
     // 初始化网络
@@ -262,10 +397,11 @@ public class MainActivity extends Activity {
             SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
             String date = df.format(new Date());
             str = date + ":" + str + "\n";
-            //_textView_log.append(str + "\n");
-            String text = _textView_log.getText().toString();
-            text = str + text;
-            _textView_log.setText(text);
+            _textView_log.append(str + "\n");
+            int offset=_textView_log.getLineCount()*_textView_log.getLineHeight();
+            if(offset>_textView_log.getHeight()){
+                _textView_log.scrollTo(0,offset-_textView_log.getHeight());
+            }
         }
     }
 
@@ -298,6 +434,12 @@ public class MainActivity extends Activity {
         _netWorker.sendMessage(new YMMessage(msg));
         YMUtil.log(result);
     }
+
+    public void quit()
+    {
+        _netWorker.quit();
+    }
+
 
     // 刷新
     public void update()
