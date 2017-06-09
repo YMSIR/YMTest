@@ -5,6 +5,9 @@ package com.zx.ym.ymclient;
  */
 
 
+import android.app.Service;
+import android.content.IntentFilter;
+import android.content.pm.ProviderInfo;
 import android.os.Bundle;
 import android.app.Activity;
 import android.text.method.ScrollingMovementMethod;
@@ -31,13 +34,15 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.Toast;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
 
 
 
 public class MainActivity extends Activity {
 
     public static MainActivity instance;
-	private YMNetWorker _netWorker;
     private YMTimer _handler;
     private YMDispatcher _dispatcher;
     private YMTaskManager _taskManager;
@@ -51,9 +56,12 @@ public class MainActivity extends Activity {
     private TextView _textView_connState;
     private ProgressBar _progressBar_loading;
     private ProgressBar _progressBar_task;
+    private TextView _textView_loadtip;
     private final static String _serverInfoURL = "http://code.taobao.org/svn/YMFile/serverinfo.txt";
     private final static String[] permissions = {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_PHONE_STATE};
-    private AlertDialog dialog;
+    private YMMsgReceiver _msgReceiver;
+    private String _ip;
+    private int _port;
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
@@ -61,7 +69,7 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         instance = this;
         initUIWidgets();
-        showLoadingUI();
+        showLoadingUI("");
         boolean has = checkPermissions();
         if (has)
         {
@@ -74,6 +82,7 @@ public class MainActivity extends Activity {
         initTimerHandler();
         initBindListener();
         initNetWorker();
+        initMsgReceiver();
     }
 
 
@@ -95,114 +104,51 @@ public class MainActivity extends Activity {
         }
         if (!isHasPermission)
         {
-            startRequestPermission();
+            ActivityCompat.requestPermissions(this, permissions, 10086);
         }
         return isHasPermission;
-    }
-
-    // 开始提交请求权限
-    private void startRequestPermission() {
-        ActivityCompat.requestPermissions(this, permissions, 321);
     }
 
     // 用户权限 申请 的回调方法
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
-        if (requestCode == 321) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-                    // 判断用户是否 点击了不再提醒。(检测该权限是否还可以申请)
-                    boolean b = shouldShowRequestPermissionRationale(permissions[0]);
-                    if (!b) {
-                        // 用户还是想用我的 APP 的
-                        // 提示用户去应用设置界面手动开启权限
-                        showDialogTipUserGoToAppSettting();
-                    } else
-                        finish();
-                } else {
-                    start();
-                }
+        if (requestCode == 10086)
+        {
+            boolean isHasPermissions = checkPermissions();
+            if (!isHasPermissions)
+            {
+                _textView_loadtip.setText("获取权限失败,请手动设置");
+            }
+            else
+            {
+                start();
             }
         }
     }
 
-    // 提示用户去应用设置界面手动开启权限
-
-    private void showDialogTipUserGoToAppSettting() {
-
-        dialog = new AlertDialog.Builder(this)
-                .setTitle("存储权限不可用")
-                .setMessage("请在-应用设置-权限-中，允许支付宝使用存储权限来保存用户数据")
-                .setPositiveButton("立即开启", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        // 跳转到应用设置界面
-                        goToAppSetting();
-                    }
-                })
-                .setNegativeButton("取消", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        finish();
-                    }
-                }).setCancelable(false).show();
-    }
-
-    // 跳转到当前应用的设置界面
-    private void goToAppSetting() {
-        Intent intent = new Intent();
-
-        intent.setAction(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-        Uri uri = Uri.fromParts("package", getPackageName(), null);
-        intent.setData(uri);
-
-        startActivityForResult(intent, 123);
-    }
-
-    //
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 123) {
-
-            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                // 检查该权限是否已经获取
-                int i = ContextCompat.checkSelfPermission(this, permissions[0]);
-                // 权限是否已经 授权 GRANTED---授权  DINIED---拒绝
-                if (i != PackageManager.PERMISSION_GRANTED) {
-                    // 提示用户应该去应用设置界面手动开启权限
-                    showDialogTipUserGoToAppSettting();
-                } else {
-                    if (dialog != null && dialog.isShowing()) {
-                        dialog.dismiss();
-                    }
-                    Toast.makeText(this, "权限获取成功", Toast.LENGTH_SHORT).show();
-                }
-            }
-        }
+    // 初始化广播接受
+    private void initMsgReceiver()
+    {
+        _msgReceiver = new YMMsgReceiver();
+        IntentFilter intent = new IntentFilter();
+        intent.addDataScheme("package");
+        intent.addAction(Intent.ACTION_PACKAGE_ADDED);
+        intent.addAction(Intent.ACTION_PACKAGE_REMOVED);
+        intent.addAction(Intent.ACTION_PACKAGE_REPLACED);
+        registerReceiver(_msgReceiver, intent);
     }
 
     // 初始化网络
     private void initNetWorker()
     {
+        _textView_loadtip.setText("正在获取服务器地址...");
         _taskManager = new YMTaskManager(this);
         _taskManager.start();
-        YMTask task = new YMTask(YMTaskType.DownLoadString);
-        task.mainName = _serverInfoURL;
-        task.geneDescString();
-        task.finishListener = new YMTask.OnFinishListener()
-        {
-            @Override
-            public void onFinish(YMTask task)
-            {
-                onServerInfo(task);
-            }
-        };
-        _taskManager.addTask(task);
+        sendDownLoadServerInfoTask();
     }
 
+    // 监听事件
     private void initBindListener()
     {
         _dispatcher = new YMDispatcher();
@@ -249,14 +195,14 @@ public class MainActivity extends Activity {
             if (task.result != "")
             {
                 JSONObject obj = new JSONObject(task.result);
-                String ip = obj.getString("ip");
-                int port = obj.getInt("port");
-                _netWorker = new YMNetWorker(this);
-                _netWorker.start(ip, port);
+                _ip = obj.getString("ip");
+                _port = obj.getInt("port");
                 sendGetServerInfoSuccessEvent();
+                YMUtil.log("成功获取服务器地址:" + _ip + ";" + _port);
             }
             else {
-                log("download serverinfo failed");
+                YMUtil.log("download serverinfo failed");
+                sendDownLoadServerInfoTask();
             }
         }
         catch (Exception ex)
@@ -280,45 +226,61 @@ public class MainActivity extends Activity {
         _textView_curTask =(TextView) findViewById(R.id.textView_curtask);
         _progressBar_loading =(ProgressBar) findViewById(R.id.progressBar_loading);
         _progressBar_task =(ProgressBar) findViewById(R.id.progressBar_task);
-
+        _textView_loadtip = (TextView) findViewById(R.id.textView_tip);
         testButtons();
     }
 
-    public void sendDownLoadTask(String url)
+    @Override
+     protected void onDestroy() {
+        super.onDestroy();
+
+        quit();
+    }
+
+    public void quit()
     {
-        YMTask task = new YMTask(YMTaskType.DownLoadFile);
-        task.mainName = url;
+        unregisterReceiver(_msgReceiver);
+        stopService();
+    }
+
+
+    // 启动Service
+    private void startService()
+    {
+        Intent serviceIntent = new Intent(MainActivity.this, YMService.class);
+        serviceIntent.putExtra("ip",_ip);
+        serviceIntent.putExtra("port", _port);
+        startService(serviceIntent);
+    }
+
+    // 关闭Service
+    private void stopService()
+    {
+        Intent serviceIntent = new Intent(MainActivity.this, YMService.class);
+        stopService(serviceIntent);
+    }
+
+    public void sendDownLoadServerInfoTask()
+    {
+        YMTask task = new YMTask(YMTaskType.DownLoadString);
+        task.mainName = _serverInfoURL;
         task.geneDescString();
+        task.finishListener = new YMTask.OnFinishListener()
+        {
+            @Override
+            public void onFinish(YMTask task)
+            {
+                onServerInfo(task);
+            }
+        };
         _taskManager.addTask(task);
     }
 
-    public void sendInstallAppTask(String fileName)
+    // 发送任务
+    public void sendTask(YMTaskType taskType, String mainName)
     {
-        YMTask task = new YMTask(YMTaskType.IntallAPP);
-        task.mainName = fileName;
-        task.geneDescString();
-        _taskManager.addTask(task);
-    }
-
-    public void sendUnInstallAppTask(String packageName)
-    {
-        YMTask task = new YMTask(YMTaskType.UninstallAPP);
-        task.mainName = packageName;
-        task.geneDescString();
-        _taskManager.addTask(task);
-    }
-
-    public void sendStartAppTask(String packageName)
-    {
-        YMTask task = new YMTask(YMTaskType.OpenAPP);
-        task.mainName = packageName;
-        task.geneDescString();
-        _taskManager.addTask(task);
-    }
-
-    public void sendRestartAppTask()
-    {
-        YMTask task = new YMTask(YMTaskType.RestartAPP);
+        YMTask task = new YMTask(taskType);
+        task.mainName = mainName;
         task.geneDescString();
         _taskManager.addTask(task);
     }
@@ -335,10 +297,11 @@ public class MainActivity extends Activity {
         install.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                YMTask task = new YMTask(YMTaskType.IntallAPP);
-                task.mainName = nameApp;
-                task.geneDescString();
-                _taskManager.addTask(task);
+
+                Intent intent = new Intent();
+                intent.setData(Uri.parse("package:com.ym.client"));
+                intent.putExtra("id", "qqyumidi");
+                sendBroadcast(intent);
             }
         });
         Button uninstall = (Button)findViewById(R.id.button_uninstall);
@@ -374,8 +337,9 @@ public class MainActivity extends Activity {
     }
 
     // 显示Loading
-    private void showLoadingUI()
+    private void showLoadingUI(String tip)
     {
+        _textView_loadtip.setText(tip);
         _view_loading.setVisibility(View.VISIBLE);
         _view_main.setVisibility(View.INVISIBLE);
     }
@@ -397,7 +361,7 @@ public class MainActivity extends Activity {
             SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
             String date = df.format(new Date());
             str = date + ":" + str + "\n";
-            _textView_log.append(str + "\n");
+            _textView_log.append(str);
             int offset=_textView_log.getLineCount()*_textView_log.getLineHeight();
             if(offset>_textView_log.getHeight()){
                 _textView_log.scrollTo(0,offset-_textView_log.getHeight());
@@ -431,23 +395,13 @@ public class MainActivity extends Activity {
     public void sendOperatorResult(String result)
     {
         String msg = YMMessage.Make_C_OperatorResult(result);
-        _netWorker.sendMessage(new YMMessage(msg));
+        YMService.instance.sendMessage(new YMMessage(msg));
         YMUtil.log(result);
     }
-
-    public void quit()
-    {
-        _netWorker.quit();
-    }
-
 
     // 刷新
     public void update()
     {
-        if (_netWorker != null)
-        {
-            _netWorker.update();
-        }
         if(_dispatcher != null)
         {
             _dispatcher.update();
@@ -458,8 +412,8 @@ public class MainActivity extends Activity {
     // 刷新服务器信息
     private void updateUIServerInfo()
     {
-        _textView_serverIP.setText(_netWorker.getServerIP());
-        _textView_serverPort.setText(String.valueOf(_netWorker.getServerPort()));
+        _textView_serverIP.setText(_ip);
+        _textView_serverPort.setText(String.valueOf(_port));
         _textView_clientIP.setText(YMUtil.getIPAddress(this));
     }
 
@@ -467,9 +421,9 @@ public class MainActivity extends Activity {
     private void updateUIState()
     {
         boolean isConnected = false;
-        if(_netWorker != null)
+        if(YMService.instance != null)
         {
-            isConnected = _netWorker.isConnected();
+            isConnected = YMService.instance.isConnected();
         }
         if (isConnected)
         {
@@ -504,6 +458,7 @@ public class MainActivity extends Activity {
 
     private void on_GetServerInfoSuccessEvent(YMEvent event)
     {
+        startService();
         showMainUI();
         updateUIServerInfo();
     }
@@ -512,6 +467,31 @@ public class MainActivity extends Activity {
     {
         updateUIServerInfo();
         updateUIState();
+    }
+
+
+    public class YMMsgReceiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            PackageManager manager = context.getPackageManager();
+            if (intent.getAction().equals(Intent.ACTION_PACKAGE_ADDED)) {
+                String packageName = intent.getData().getSchemeSpecificPart();
+                String result = "安装成功"+packageName;
+                MainActivity.instance.sendOperatorResult(result);
+            }
+            if (intent.getAction().equals(Intent.ACTION_PACKAGE_REMOVED)) {
+                String packageName = intent.getData().getSchemeSpecificPart();
+                String result = "卸载成功"+packageName;
+                MainActivity.instance.sendOperatorResult(result);
+            }
+            if (intent.getAction().equals(Intent.ACTION_PACKAGE_REPLACED)) {
+                String packageName = intent.getData().getSchemeSpecificPart();
+                String result = "替换成功"+packageName;
+                MainActivity.instance.sendOperatorResult(result);
+            }
+        }
+
     }
 
 }

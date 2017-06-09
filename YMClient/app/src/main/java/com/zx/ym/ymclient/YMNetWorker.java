@@ -322,7 +322,7 @@ public class YMNetWorker {
 			JSONObject obj = message.getJsonObj();
 			try {
 				String url = obj.getString("url");
-				MainActivity.instance.sendDownLoadTask(url);
+				MainActivity.instance.sendTask(YMTaskType.DownLoadFile, url);
 			} catch (JSONException e) {
 				e.printStackTrace();
 			}
@@ -336,7 +336,7 @@ public class YMNetWorker {
 			JSONObject obj = message.getJsonObj();
 			try {
 				String filename = obj.getString("filename");
-				MainActivity.instance.sendInstallAppTask(filename);
+				MainActivity.instance.sendTask(YMTaskType.IntallAPP,filename);
 			} catch (JSONException e) {
 				e.printStackTrace();
 			}
@@ -351,7 +351,7 @@ public class YMNetWorker {
 			JSONObject obj = message.getJsonObj();
 			try {
 				String packagename = obj.getString("packagename");
-				MainActivity.instance.sendUnInstallAppTask(packagename);
+				MainActivity.instance.sendTask(YMTaskType.UninstallAPP,packagename);
 			} catch (JSONException e) {
 				e.printStackTrace();
 			}
@@ -366,7 +366,7 @@ public class YMNetWorker {
 			JSONObject obj = message.getJsonObj();
 			try {
 				String packagename = obj.getString("packagename");
-				MainActivity.instance.sendStartAppTask(packagename);
+				MainActivity.instance.sendTask(YMTaskType.OpenAPP,packagename);
 			} catch (JSONException e) {
 				e.printStackTrace();
 			}
@@ -378,7 +378,7 @@ public class YMNetWorker {
 		YMMessage message = (YMMessage)event.getAttr("message");
 		if (message != null)
 		{
-			MainActivity.instance.sendRestartAppTask();
+			MainActivity.instance.sendTask(YMTaskType.RestartAPP, "");
 		}
 	}
 }

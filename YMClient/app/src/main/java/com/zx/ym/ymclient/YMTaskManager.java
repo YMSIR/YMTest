@@ -74,7 +74,7 @@ public class YMTaskManager extends Thread {
             }
             else
             {
-                YMUtil.log(_curTask.desc);
+                YMUtil.log("执行任务:" + _curTask.desc);
                 switch (_curTask.taskType)
                 {
                     case DownLoadString:

@@ -100,7 +100,7 @@ public class YMUtil {
 
 	// 日志输出
 	public static void log(String message) {
-		//Log.i("YMClient", message);
+		Log.i("YMClient", message);
 		MainActivity.instance.sendLogEvent(message);
 	}
 

@@ -14,6 +14,8 @@ public class YMEvent {
 	public final static int ID_Log 							= 3;
 	public final static int ID_GetServerInfoSuccess 		= 4;
 	public final static int ID_UpdateUI 					= 5;
+	public final static int ID_SendMessageToService		= 6;
+	public final static int ID_SendTaskToMain				= 7;
 
 	interface OnListener{
 		public void onEvent(YMEvent event);
