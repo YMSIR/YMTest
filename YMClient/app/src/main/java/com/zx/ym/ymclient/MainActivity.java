@@ -198,7 +198,7 @@ public class MainActivity extends Activity {
                 _ip = obj.getString("ip");
                 _port = obj.getInt("port");
                 sendGetServerInfoSuccessEvent();
-                YMUtil.log("成功获取服务器地址:" + _ip + ";" + _port);
+                YMUtil.log("IP地址:" + _ip + " 端口号:" + _port);
             }
             else {
                 YMUtil.log("download serverinfo failed");

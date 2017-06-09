@@ -13,7 +13,7 @@ class YMServer:
     #启动
     def start(self):
         self.app = wx.App()
-        self.mainUI = YMUIWindow(None,title=u"测试工具")
+        self.mainUI = YMUIWindow(None,title=u"YMServer")
         self.app.MainLoop()
 
 if __name__ == '__main__':

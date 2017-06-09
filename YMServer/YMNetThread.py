@@ -4,6 +4,7 @@
 import threading
 import socket
 import select
+import time
 from YMEvent import YMEvent as YMEvent
 from YMMessage import YMMessage as YMMessage
 from YMMessage import YMPacketHeader as YMPacketHeader
@@ -20,6 +21,7 @@ class YMNetThread(threading.Thread):
     SELECT_TIMEOUT = 0.05
     SEND_BUF_SIZE = 16*1024
     RECV_BUF_SIZE = 16*1024
+    RECV_TIMEOUT = 10
     #初始化
     def __init__(self, args):
         threading.Thread.__init__(self)
@@ -67,12 +69,13 @@ class YMNetThread(threading.Thread):
             #断开连接
             for sk in e_list:
                 self.removeConnInfo(sk)
+            self.checkClientState()
 
     #是否存在ID
     def isExistClientId(self, id):
         isExist = False
         for k,v in self.connDict.items():
-            if v == id:
+            if v[0] == id:
                 isExist = True
                 break
         return isExist
@@ -91,7 +94,7 @@ class YMNetThread(threading.Thread):
             sk.setsockopt(socket.SOL_SOCKET,socket.SO_SNDBUF, YMNetThread.SEND_BUF_SIZE)
             sk.setsockopt(socket.SOL_SOCKET,socket.SO_RCVBUF, YMNetThread.RECV_BUF_SIZE)
             id = self.geneUniqueId()
-            self.connDict[sk] = id
+            self.connDict[sk] = [id, time.time()]
             self.socketList.append(sk)
             self.recvBuffer[sk] = [bytearray(" "*YMNetThread.RECV_BUF_SIZE), 0]
             event = YMEvent(YMEvent.ID_ClientConnect)
@@ -103,7 +106,7 @@ class YMNetThread(threading.Thread):
     def removeConnInfo(self, s):
         if self.connDict.has_key(s):
             event = YMEvent(YMEvent.ID_ClientDisConn)
-            event.addArg("clientId",self.connDict[s])
+            event.addArg("clientId",self.connDict[s][0])
             self.args.dispatcher.dispatchToMainThread(event)
             del self.connDict[s]
             del self.recvBuffer[s]
@@ -112,7 +115,7 @@ class YMNetThread(threading.Thread):
     #通过Id获取连接信息
     def getSocketById(self, id):
         for k, v in self.connDict.items():
-            if v == id:
+            if v[0] == id:
                 return k
         return None
 
@@ -122,6 +125,20 @@ class YMNetThread(threading.Thread):
             return self.connDict[s]
         else:
             return None
+
+    #刷新接受消息时间
+    def updateConnInfoRecvTime(self,sk):
+        conninfo = self.getConnInfoBySocket(sk)
+        if conninfo != None:
+            conninfo[1] = time.time()
+
+    #检测客户端是否断线
+    def checkClientState(self):
+        curTime = time.time()
+        for k, v in self.connDict.items():
+            if curTime -  v[1] > YMNetThread.RECV_TIMEOUT:
+                self.removeConnInfo(k)
+
 
     #主线程输出日志
     def log(self, message):
@@ -160,6 +177,7 @@ class YMNetThread(threading.Thread):
                         buffer[0:offsetMinusHeader] =  buffer[YMPacketHeader.SIZE:offset]
                         self.recvBuffer[sk][1] = offsetMinusHeader
                         break
+                self.updateConnInfoRecvTime(sk)
             else:
                 self.removeConnInfo(sk)
                 print("recv null disconnect")
@@ -184,8 +202,8 @@ class YMNetThread(threading.Thread):
 
     #加入接受消息
     def putRecvMessage(self,sk, message):
-        clientId = self.getConnInfoBySocket(sk)
-        if clientId != None:
-             self.args.putRecvMessage([clientId,message])
+        clientinfo = self.getConnInfoBySocket(sk)
+        if clientinfo != None:
+             self.args.putRecvMessage([clientinfo[0],message])
 
 

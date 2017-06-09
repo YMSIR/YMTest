@@ -292,6 +292,7 @@ public class YMNetWorker {
 		{
 			_checkAlive.updateRecvTime();
 		}
+		YMUtil.log("❤❤❤❤❤");
 	}
 	
 	private void on_S_DeviceInfo(YMEvent event) 

@@ -3,6 +3,7 @@
 
 import Queue
 import threading
+import time
 
 from YMNetThread import YMThreadArgs as YMThreadArgs
 from YMNetThread import YMNetThread as YMNetThread
@@ -126,7 +127,7 @@ class YMNetWorker:
         ip = event.getArg("ip")
         data = self.getClientData(clientId)
         if data == None:
-            data = {"ip":ip, "deviceId":""}
+            data = {"ip":ip}
             self.addClientData(clientId,data)
             event = YMEvent(YMEvent.ID_AddClientInfo)
             event.addArg("clientId", clientId)
