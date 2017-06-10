@@ -139,7 +139,7 @@ class YMUIWindow(wx.Frame):
     def __init__(self, parent, title):
 
         #网络
-        localIP = YMUtil.getLocalIPByPrefix("172.")
+        localIP = YMUtil.getLocalIPByPrefix("192.168.")
         self.ymNetWorker = YMNetWorker(localIP, 8001, wx.LogMessage)
         self.ymNetWorker.start()
 
@@ -210,6 +210,7 @@ class YMUIWindow(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.OnBtn_InstallApp, btn_installApp)
         self.Bind(wx.EVT_BUTTON, self.OnBtn_UninstallApp, btn_uninstallApp)
         self.Bind(wx.EVT_BUTTON, self.OnBtn_RestartApp, btn_restartApp)
+        self.Bind(wx.EVT_CLOSE, self.OnBtn_Close)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(btn_downApp, 0, wx.Left|wx.Right|wx.EXPAND, 10)
@@ -225,8 +226,8 @@ class YMUIWindow(wx.Frame):
         self.list = YMDevList(parent, self.ymNetWorker.clientDict)
         titlePanel = wx.Panel(parent)
         titlePanel.SetBackgroundColour('#BEBEBE')
-        titleText = wx.StaticText(titlePanel, - 1, u"设备列表",(5, 4))
-        font = wx.Font(8,wx.DEFAULT, wx.NORMAL, wx.NORMAL)
+        titleText = wx.StaticText(titlePanel, - 1, u"设备列表",(0, 0))
+        font = wx.Font(11,wx.DEFAULT, wx.NORMAL, wx.NORMAL)
         titleText.SetFont(font)
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(titlePanel,0, wx.Left|wx.Right|wx.EXPAND, 10)
@@ -247,6 +248,14 @@ class YMUIWindow(wx.Frame):
     #刷新
     def OnUpdate(self, evt):
         self.ymNetWorker.update()
+
+    #关闭
+    def OnBtn_Close(self, evt):
+        self.timer.Stop()
+        self.ymNetWorker.stop()
+        wx.Exit()
+
+
 
     #启动App
     def OnBtn_OpenApp(self, evt):

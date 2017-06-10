@@ -159,7 +159,7 @@ class YMNetWorker:
         message = event.getArg("message")
         jsonMsg = YMMessage.Make_S_CheckAlive()
         self.sendMessage(clientId, YMMessage(jsonMsg))
-        #self.log(u'on_C_DevInfo client Id: %d Message:%s ' % (clientId ,message.jsonMsg))
+        self.log(u'on_C_DevInfo client Id: %d Message:%s ' % (clientId ,message.jsonMsg))
 
     #APP设备信息
     def on_C_DevInfo(self, event):
