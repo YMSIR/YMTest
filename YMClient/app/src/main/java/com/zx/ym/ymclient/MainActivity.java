@@ -10,6 +10,7 @@ import android.content.IntentFilter;
 import android.content.pm.ProviderInfo;
 import android.os.Bundle;
 import android.app.Activity;
+import android.os.PowerManager;
 import android.text.method.ScrollingMovementMethod;
 import android.view.View;
 import android.widget.Button;
@@ -62,6 +63,7 @@ public class MainActivity extends Activity {
     private YMMsgReceiver _msgReceiver;
     private String _ip;
     private int _port;
+    private PowerManager.WakeLock _wLock;
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
@@ -75,6 +77,7 @@ public class MainActivity extends Activity {
         {
             start();
         }
+        acquireLock();
     }
 
     private void start()
@@ -83,7 +86,28 @@ public class MainActivity extends Activity {
         initBindListener();
         initNetWorker();
         initMsgReceiver();
+        YMUtil.checkFileRootDir();
     }
+
+    private void acquireLock()
+    {
+        if (_wLock == null)
+        {
+            PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+            _wLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "YMClient");
+            _wLock.acquire();
+        }
+    }
+
+    private void relaseLock()
+    {
+        if (_wLock != null)
+        {
+            _wLock.release();
+            _wLock = null;
+        }
+    }
+
 
 
     private boolean checkPermissions()
@@ -233,7 +257,7 @@ public class MainActivity extends Activity {
     @Override
      protected void onDestroy() {
         super.onDestroy();
-
+        relaseLock();
         quit();
     }
 
@@ -361,11 +385,17 @@ public class MainActivity extends Activity {
             SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
             String date = df.format(new Date());
             str = date + ":" + str + "\n";
+            int curY = _textView_log.getScrollY();
+            int bottomY = _textView_log.getLineCount()*_textView_log.getLineHeight() -_textView_log.getHeight();
             _textView_log.append(str);
-            int offset=_textView_log.getLineCount()*_textView_log.getLineHeight();
-            if(offset>_textView_log.getHeight()){
-                _textView_log.scrollTo(0,offset-_textView_log.getHeight());
+            if (bottomY - curY <= 20)
+            {
+                int offset=_textView_log.getLineCount()*_textView_log.getLineHeight();
+                if(offset>_textView_log.getHeight()){
+                    _textView_log.scrollTo(0,offset-_textView_log.getHeight());
+                }
             }
+
         }
     }
 

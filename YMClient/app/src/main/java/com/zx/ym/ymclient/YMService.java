@@ -10,6 +10,7 @@ import android.app.Service;
 import android.content.Intent;
 import android.content.pm.ProviderInfo;
 import android.os.IBinder;
+import android.provider.Settings;
 import android.util.Log;
 
 
@@ -21,6 +22,7 @@ public class YMService extends Service {
     private YMTimer _handler;
     private String _ip;
     private int _port;
+    private long _lastTime;
 
     public String getServerIP()
     {
@@ -103,6 +105,7 @@ public class YMService extends Service {
     // 启动网络连接
     private void initNetWorker()
     {
+        _lastTime = System.currentTimeMillis();
         _netWorker = new YMNetWorker(this);
         _netWorker.start(_ip, _port);
     }
@@ -110,9 +113,8 @@ public class YMService extends Service {
 
     private void update()
     {
-        if (_netWorker != null)
-        {
-           _netWorker.update();
+        if (_netWorker != null) {
+            _netWorker.update();
         }
     }
 

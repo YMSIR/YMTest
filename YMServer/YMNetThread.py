@@ -15,13 +15,14 @@ class YMThreadArgs:
     popSendMessage = None
     putRecvMessage = None
     dispatcher = None
+    HEART_TIMEOUT = 60
 
 #网络线程
 class YMNetThread(threading.Thread):
     SELECT_TIMEOUT = 0.05
     SEND_BUF_SIZE = 16*1024
     RECV_BUF_SIZE = 16*1024
-    RECV_TIMEOUT = 10
+
     #初始化
     def __init__(self, args):
         threading.Thread.__init__(self)
@@ -70,6 +71,7 @@ class YMNetThread(threading.Thread):
             for sk in e_list:
                 self.removeConnInfo(sk)
             self.checkClientState()
+            time.sleep(0.1)
 
     #是否存在ID
     def isExistClientId(self, id):
@@ -136,7 +138,7 @@ class YMNetThread(threading.Thread):
     def checkClientState(self):
         curTime = time.time()
         for k, v in self.connDict.items():
-            if curTime -  v[1] > YMNetThread.RECV_TIMEOUT:
+            if curTime -  v[1] > 2 * YMThreadArgs.HEART_TIMEOUT:
                 self.removeConnInfo(k)
 
 
@@ -184,7 +186,7 @@ class YMNetThread(threading.Thread):
 
         except Exception as ex:
             self.removeConnInfo(sk)
-            self.log(str(ex))
+            self.log("recv:" + str(ex))
 
     #向客户端发送数据
     def sendData(self):
@@ -196,6 +198,7 @@ class YMNetThread(threading.Thread):
             if sk != None:
                 try:
                     sk.sendall(message.getBytes())
+                    print("send:" + message.jsonMsg)
                 except Exception as ex:
                     print(ex)
             data = self.args.popSendMessage()

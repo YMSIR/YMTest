@@ -20,6 +20,7 @@ import android.R.bool;
 import android.R.integer;
 import android.preference.PreferenceActivity.Header;
 import android.provider.ContactsContract.Contacts.Data;
+import android.provider.Settings;
 import android.text.InputFilter.LengthFilter;
 
 
@@ -38,6 +39,7 @@ public class YMNetThread extends Thread {
 	public final static int RECONNNECT_TIMEDELATA = 5000;
 	public final static int SENDBUFFER_SIZE = 100*1024;
 	public final static int RECVBUFFER_SIZE = 100*1024;
+	public final static int HEART_TIMEOUT = 60 * 1000;
 	private YMThreadArgs _args;
 	private boolean _isConnected;
 	private Socket _socket;
@@ -47,6 +49,7 @@ public class YMNetThread extends Thread {
 	private int _recvOffset;
 	private boolean _isRun;
 	private long _lastConnTime;
+	private long _lastRecvTime;
 
 	
 	public YMNetThread(YMThreadArgs args)
@@ -56,6 +59,7 @@ public class YMNetThread extends Thread {
 		_isRun = false;
 		_recvOffset = 0;
 		_lastConnTime = 0;
+		_lastRecvTime = 0;
 		_address = new InetSocketAddress(_args.ip, _args.port);
 		_recvBuffer = new byte[RECVBUFFER_SIZE];
 		_sendBuffer = new byte[SENDBUFFER_SIZE];
@@ -85,7 +89,8 @@ public class YMNetThread extends Thread {
 			else
 			{
 				recv();
-				send();		
+				send();
+				checkHeart();
 			}
 			
 			try 
@@ -127,7 +132,7 @@ public class YMNetThread extends Thread {
 		catch (Exception e) 
 		{
 			//YMUtil.log(e.getMessage());
-			e.printStackTrace();
+			//e.printStackTrace();
 		}
 	}
 	
@@ -140,6 +145,7 @@ public class YMNetThread extends Thread {
 			int readSize = inputStream.read(_recvBuffer, _recvOffset, RECVBUFFER_SIZE - _recvOffset);
 			if (readSize > 0) 
 			{
+				_lastRecvTime = System.currentTimeMillis();
 				_recvOffset += readSize;
 				while (_recvOffset > YMPacketHeader.size) 
 				{
@@ -153,6 +159,7 @@ public class YMNetThread extends Thread {
 							System.arraycopy(_recvBuffer, header.size, content, 0, contentSize);
 							String jsonContent = new String(content);
 							//YMUtil.log(jsonContent);
+							System.out.print(jsonContent);
 							YMMessage message = new YMMessage(jsonContent);
 							message.decode();
 							_args.worker.putRecvMessageQueue(message);
@@ -195,12 +202,14 @@ public class YMNetThread extends Thread {
 				OutputStream outputStream = _socket.getOutputStream();
 				outputStream.write(message.getBytes());
 				outputStream.flush();
+				//YMUtil.log("send:" + message.getJsonContent());
 				message = _args.worker.popSendMessageQueue();
 			}
 				
 		} 
 		catch (Exception e) 
 		{
+			YMUtil.log(e.getMessage());
 			disconnect();
 		}
 	}
@@ -222,6 +231,19 @@ public class YMNetThread extends Thread {
 			setIsConnected(false);
 		}
 	}
+
+	// 检测心跳
+	private void checkHeart()
+	{
+		if (_isConnected)
+		{
+			long curTime = System.currentTimeMillis();
+			if (curTime - _lastRecvTime > 2 * HEART_TIMEOUT) {
+				disconnect();
+			}
+		}
+	}
+
 	
 	// 设置是否连接
 	private void setIsConnected(boolean is) {
@@ -232,6 +254,7 @@ public class YMNetThread extends Thread {
 		if (_isConnected) {
 			YMEvent event = new YMEvent(YMEvent.ID_ConnSuccess);
 			_args.worker.getDispatcher().dispatchInMainThread(event);
+			_lastRecvTime = System.currentTimeMillis();
 		}
 		else {
 			YMEvent event = new YMEvent(YMEvent.ID_DisConnect);

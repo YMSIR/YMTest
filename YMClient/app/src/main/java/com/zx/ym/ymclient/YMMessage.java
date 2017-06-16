@@ -78,6 +78,10 @@ public class YMMessage {
 	{
 		return _messageId;
 	}
+	public String getJsonContent()
+	{
+		return _jsonContent;
+	}
 	
 	public JSONObject getJsonObj() 
 	{
@@ -114,8 +118,8 @@ public class YMMessage {
 	
 	public static String Make_C_CheckAlive() 
 	{
-		String formateStr = "{\"id\":%d}";
-		return String.format( formateStr,C_CheckAlive);
+		String formateStr = "{\"id\":%d,\"order\":%d}";
+		return String.format( formateStr,C_CheckAlive, System.currentTimeMillis());
 	}
 	
 	public static String Make_C_DeviceInfo(String deviceId,String phoneBrand, String phoneModel, String version) 

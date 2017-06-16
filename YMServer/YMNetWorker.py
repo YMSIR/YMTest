@@ -101,6 +101,7 @@ class YMNetWorker:
     def update(self):
         self.dispatcher.update()
         self.handleMessage()
+        self.checkSendAliveMessage()
 
     #处理消息
     def handleMessage(self):
@@ -121,13 +122,22 @@ class YMNetWorker:
         netEvent.addArg("message",message)
         self.dispatcher.dispatchEvent(netEvent)
 
+    #发送心跳包
+    def checkSendAliveMessage(self):
+        curTime = time.time()
+        jsonMsg = YMMessage.Make_S_CheckAlive()
+        for k,v in self.clientDict.items():
+            if curTime - v["lastSendTime"] > YMThreadArgs.HEART_TIMEOUT:
+                self.sendMessage(k, YMMessage(jsonMsg))
+                v["lastSendTime"] = curTime
+
     #客户端连接
     def on_ClientConnectEvent(self, event):
         clientId = event.getArg("clientId")
         ip = event.getArg("ip")
         data = self.getClientData(clientId)
         if data == None:
-            data = {"ip":ip}
+            data = {"ip":ip, "lastSendTime":time.time()}
             self.addClientData(clientId,data)
             event = YMEvent(YMEvent.ID_AddClientInfo)
             event.addArg("clientId", clientId)
@@ -157,9 +167,9 @@ class YMNetWorker:
     def on_C_CheckAlive(self, event):
         clientId = event.getArg("clientId")
         message = event.getArg("message")
-        jsonMsg = YMMessage.Make_S_CheckAlive()
-        self.sendMessage(clientId, YMMessage(jsonMsg))
-        self.log(u'on_C_DevInfo client Id: %d Message:%s ' % (clientId ,message.jsonMsg))
+        #jsonMsg = YMMessage.Make_S_CheckAlive()
+        #self.sendMessage(clientId, YMMessage(jsonMsg))
+        self.log(u'on_C_CheckAlive client Id: %d Message:%s ' % (clientId ,message.jsonMsg))
 
     #APP设备信息
     def on_C_DevInfo(self, event):

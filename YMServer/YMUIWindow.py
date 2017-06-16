@@ -139,7 +139,7 @@ class YMUIWindow(wx.Frame):
     def __init__(self, parent, title):
 
         #网络
-        localIP = YMUtil.getLocalIPByPrefix("192.168.")
+        localIP = YMUtil.getLocalIPByPrefix("172.")
         self.ymNetWorker = YMNetWorker(localIP, 8001, wx.LogMessage)
         self.ymNetWorker.start()
 

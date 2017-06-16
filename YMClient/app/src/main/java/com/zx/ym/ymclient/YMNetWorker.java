@@ -14,50 +14,6 @@ import android.content.Context;
 import android.content.pm.ProviderInfo;
 
 
-// 心跳检测
-class YMCheckAlive
-{	
-	private int _checkMsgDelta;
-	private long _lastSendTime;
-	private long _lastRecvTime;
-	private YMNetWorker _worker;
-	
-	public YMCheckAlive(YMNetWorker w)
-	{
-		_worker = w;
-		_checkMsgDelta = 5000;
-		_lastRecvTime = 0;
-		_lastSendTime = 0;
-	}
-	
-	public void setCheckMsgDelta(int ms)
-	{
-		_checkMsgDelta = ms;
-	}
-	
-	public void updateRecvTime()
-	{
-		_lastRecvTime = System.currentTimeMillis();
-	}
-	
-	public void checkSendAndRecv()
-	{
-		long curTime = System.currentTimeMillis();
-		if (curTime - _lastSendTime >= _checkMsgDelta)
-		{
-			String jsonString = YMMessage.Make_C_CheckAlive();
-			_worker.sendMessage(new YMMessage(jsonString));
-			_lastSendTime = curTime;
-		}
-		if (_lastRecvTime != 0 && curTime - _lastRecvTime >= _checkMsgDelta * 2)
-		{
-			_worker.getNetThread().disconnect();
-			_lastRecvTime = 0;
-		}
-	}
-}
-	
-
 
 public class YMNetWorker {
 	
@@ -66,13 +22,11 @@ public class YMNetWorker {
 	private YMNetThread _netThread;
 	private YMDispatcher _dispatcher;
 	private Context _context;
-	private YMCheckAlive _checkAlive;
 	private String _ip;
 	private int _port;
 	
 	
 	public YMNetWorker(Context context) {
-		_checkAlive = null;
 		_context = context;
 		_sendMessageQueue = new LinkedList<YMMessage>();
 		_recvMessageQueue = new LinkedList<YMMessage>();
@@ -168,10 +122,6 @@ public class YMNetWorker {
 	{
 		_dispatcher.update();
 		this.handMessage();
-		if (_checkAlive != null) 
-		{
-			_checkAlive.checkSendAndRecv();
-		}	
 	}
 	
 	public void sendMessage(YMMessage message)
@@ -277,22 +227,18 @@ public class YMNetWorker {
 		String version = YMUtil.getBuildVersion();
 		String msg = YMMessage.Make_C_DeviceInfo(deviceId, phoneBrand, phoneModel, version);
 		sendMessage(new YMMessage(msg));
-		_checkAlive = new YMCheckAlive(this);
 	}
 	
 	private void on_DisConnectEvent(YMEvent event)
 	{
 		YMUtil.log("on_DisConnectEvent");
-		_checkAlive = null;
 	}
 	
 	private void on_S_CheckAlive(YMEvent event) 
 	{
-		if (_checkAlive != null) 
-		{
-			_checkAlive.updateRecvTime();
-		}
-		YMUtil.log("❤❤❤❤❤");
+		String jsonString = YMMessage.Make_C_CheckAlive();
+		sendMessage(new YMMessage(jsonString));
+		//YMUtil.log("❤❤❤❤❤");
 	}
 	
 	private void on_S_DeviceInfo(YMEvent event) 

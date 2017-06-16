@@ -3,6 +3,7 @@
 
 import json
 import struct
+import time
 
 
 class YMPacketHeader:
@@ -83,7 +84,7 @@ class YMMessage:
 
     @staticmethod
     def Make_S_CheckAlive():
-        p = {'id':YMMessage.S_CheckAlive}
+        p = {'id':YMMessage.S_CheckAlive,"order":time.time()}
         s = json.dumps(p,ensure_ascii=False)
         return  s
 

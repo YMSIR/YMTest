@@ -107,7 +107,6 @@ public class YMUtil {
 	// 检测目录是否存在
 	public static void checkFileRootDir()
 	{
-
 		File dir = new File(fileRootPath);
 		if (!dir.exists())
 		{
@@ -118,6 +117,11 @@ public class YMUtil {
 			log("xxxxx");
 		}
 
+		String rootDir = Environment.getRootDirectory().getAbsolutePath();
+		String dataDir = Environment.getDataDirectory().getAbsolutePath();
+		String exDir = Environment.getExternalStorageDirectory().getAbsolutePath();
+		String downDir = Environment.getDownloadCacheDirectory().getAbsolutePath();
+		log(rootDir);
 	}
 
 	// 创建文件
