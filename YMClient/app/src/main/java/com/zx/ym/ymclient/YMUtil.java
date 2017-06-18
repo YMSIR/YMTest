@@ -116,12 +116,6 @@ public class YMUtil {
 		{
 			log("xxxxx");
 		}
-
-		String rootDir = Environment.getRootDirectory().getAbsolutePath();
-		String dataDir = Environment.getDataDirectory().getAbsolutePath();
-		String exDir = Environment.getExternalStorageDirectory().getAbsolutePath();
-		String downDir = Environment.getDownloadCacheDirectory().getAbsolutePath();
-		log(rootDir);
 	}
 
 	// 创建文件

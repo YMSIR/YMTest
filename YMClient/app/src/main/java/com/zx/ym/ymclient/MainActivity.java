@@ -86,7 +86,6 @@ public class MainActivity extends Activity {
         initBindListener();
         initNetWorker();
         initMsgReceiver();
-        YMUtil.checkFileRootDir();
     }
 
     private void acquireLock()
