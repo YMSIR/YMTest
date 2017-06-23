@@ -60,7 +60,8 @@ public class MainActivity extends Activity {
     private ProgressBar _progressBar_loading;
     private ProgressBar _progressBar_task;
     private TextView _textView_loadtip;
-    private final static String _serverInfoURL = "https://raw.githubusercontent.com/YMSIR/YMTest/master/serverinfo.txt";
+    private int _curServerURLIndex = 0;
+    private final static String[] _serverInfoURL = {"https://raw.githubusercontent.com/YMSIR/YMTest/master/serverinfo.txt","http://code.taobao.org/svn/YMFile/serverinfo.txt"};
     private final static String[] permissions = {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_PHONE_STATE,  Manifest.permission.RECEIVE_BOOT_COMPLETED, Manifest.permission.INTERNET};
     private YMMsgReceiver _msgReceiver;
     private String _ip;
@@ -265,7 +266,7 @@ public class MainActivity extends Activity {
 
     public void quit()
     {
-        unregisterReceiver(_msgReceiver);
+        //unregisterReceiver(_msgReceiver);
         stopService();
     }
 
@@ -273,23 +274,30 @@ public class MainActivity extends Activity {
     // 启动Service
     private void startService()
     {
-        Intent serviceIntent = new Intent(MainActivity.this, YMService.class);
-        serviceIntent.putExtra("ip",_ip);
-        serviceIntent.putExtra("port", _port);
-        startService(serviceIntent);
+        if (YMService.instance == null)
+        {
+            Intent serviceIntent = new Intent(MainActivity.this, YMService.class);
+            serviceIntent.putExtra("ip",_ip);
+            serviceIntent.putExtra("port", _port);
+            startService(serviceIntent);
+        }
     }
 
     // 关闭Service
     private void stopService()
     {
-        Intent serviceIntent = new Intent(MainActivity.this, YMService.class);
-        stopService(serviceIntent);
+        if( YMService.instance != null)
+        {
+            Intent serviceIntent = new Intent(MainActivity.this, YMService.class);
+            stopService(serviceIntent);
+            YMService.instance = null;
+        }
     }
 
     public void sendDownLoadServerInfoTask()
     {
         YMTask task = new YMTask(YMTaskType.DownLoadString);
-        task.mainName = _serverInfoURL;
+        task.mainName = _serverInfoURL[_curServerURLIndex];
         task.geneDescString();
         task.finishListener = new YMTask.OnFinishListener()
         {
@@ -300,6 +308,7 @@ public class MainActivity extends Activity {
             }
         };
         _taskManager.addTask(task);
+        _curServerURLIndex = _curServerURLIndex == 0 ? 1:0;
     }
 
     // 发送任务

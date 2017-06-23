@@ -188,11 +188,11 @@ public class YMTaskManager extends Thread {
         boolean result =  YMUtil.restartAPP();
         if (result)
         {
-            MainActivity.instance.sendOperatorResult("重启"  + "成功");
+            //MainActivity.instance.sendOperatorResult("重启"  + "成功");
         }
         else
         {
-            MainActivity.instance.sendOperatorResult("重启"  + "失败");
+            //MainActivity.instance.sendOperatorResult("重启"  + "失败");
         }
         return result;
     }

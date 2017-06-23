@@ -15,7 +15,7 @@ class YMThreadArgs:
     popSendMessage = None
     putRecvMessage = None
     dispatcher = None
-    HEART_TIMEOUT = 60
+    HEART_TIMEOUT = 30
 
 #网络线程
 class YMNetThread(threading.Thread):
@@ -198,9 +198,9 @@ class YMNetThread(threading.Thread):
             if sk != None:
                 try:
                     sk.sendall(message.getBytes())
-                    print("send:" + message.jsonMsg)
                 except Exception as ex:
-                    print(ex)
+                    self.removeConnInfo(sk)
+                    self.log("send:" + str(ex))
             data = self.args.popSendMessage()
 
     #加入接受消息
