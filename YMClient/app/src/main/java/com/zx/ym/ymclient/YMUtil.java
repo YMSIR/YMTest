@@ -114,7 +114,7 @@ public class YMUtil {
 		}
 		if (!dir.exists())
 		{
-			log("xxxxx");
+			log("目录创建失败");
 		}
 	}
 
@@ -284,6 +284,10 @@ public class YMUtil {
 
 	// 卸载APP -1失败 0成功 1等待
 	public static int uninstallAPK(String packageName) {
+		if (!isAvilible(packageName))
+		{
+			return -1;
+		}
 
 		if (isHasRootPermission)
 		{
@@ -336,9 +340,16 @@ public class YMUtil {
 
 	public static boolean closeAPP(String packageName)
 	{
-		ActivityManager manager = (ActivityManager) MainActivity.instance.getSystemService(Context.ACTIVITY_SERVICE);
-		manager.killBackgroundProcesses(packageName);
-		return true;
+		if (isAvilible(packageName))
+		{
+			ActivityManager manager = (ActivityManager) MainActivity.instance.getSystemService(Context.ACTIVITY_SERVICE);
+			manager.killBackgroundProcesses(packageName);
+			return true;
+		}
+		else
+		{
+			return  false;
+		}
 	}
 
 	// 重启APP

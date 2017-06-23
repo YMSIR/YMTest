@@ -39,7 +39,7 @@ public class YMNetThread extends Thread {
 	public final static int RECONNNECT_TIMEDELATA = 5000;
 	public final static int SENDBUFFER_SIZE = 100*1024;
 	public final static int RECVBUFFER_SIZE = 100*1024;
-	public final static int HEART_TIMEOUT = 60 * 1000;
+	public final static int HEART_TIMEOUT = 30 * 1000;
 	private YMThreadArgs _args;
 	private boolean _isConnected;
 	private Socket _socket;
@@ -95,7 +95,7 @@ public class YMNetThread extends Thread {
 			
 			try 
 			{
-				sleep(100);
+				sleep(500);
 				
 			} catch (Exception e)
 			{

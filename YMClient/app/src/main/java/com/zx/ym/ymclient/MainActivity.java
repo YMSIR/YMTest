@@ -11,6 +11,7 @@ import android.content.pm.ProviderInfo;
 import android.os.Bundle;
 import android.app.Activity;
 import android.os.PowerManager;
+import android.support.v4.app.FragmentActivity;
 import android.text.method.ScrollingMovementMethod;
 import android.view.View;
 import android.widget.Button;
@@ -38,6 +39,7 @@ import android.widget.Toast;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.view.KeyEvent;
 
 
 
@@ -58,8 +60,8 @@ public class MainActivity extends Activity {
     private ProgressBar _progressBar_loading;
     private ProgressBar _progressBar_task;
     private TextView _textView_loadtip;
-    private final static String _serverInfoURL = "http://code.taobao.org/svn/YMFile/serverinfo.txt";
-    private final static String[] permissions = {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_PHONE_STATE};
+    private final static String _serverInfoURL = "https://raw.githubusercontent.com/YMSIR/YMTest/master/serverinfo.txt";
+    private final static String[] permissions = {Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_PHONE_STATE,  Manifest.permission.RECEIVE_BOOT_COMPLETED, Manifest.permission.INTERNET};
     private YMMsgReceiver _msgReceiver;
     private String _ip;
     private int _port;
@@ -85,7 +87,7 @@ public class MainActivity extends Activity {
         initTimerHandler();
         initBindListener();
         initNetWorker();
-        initMsgReceiver();
+        //initMsgReceiver();
     }
 
     private void acquireLock()
@@ -159,6 +161,7 @@ public class MainActivity extends Activity {
         intent.addAction(Intent.ACTION_PACKAGE_ADDED);
         intent.addAction(Intent.ACTION_PACKAGE_REMOVED);
         intent.addAction(Intent.ACTION_PACKAGE_REPLACED);
+        intent.addAction(Intent.ACTION_BOOT_COMPLETED);
         registerReceiver(_msgReceiver, intent);
     }
 
@@ -498,29 +501,18 @@ public class MainActivity extends Activity {
         updateUIState();
     }
 
-
-    public class YMMsgReceiver extends BroadcastReceiver {
-
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            PackageManager manager = context.getPackageManager();
-            if (intent.getAction().equals(Intent.ACTION_PACKAGE_ADDED)) {
-                String packageName = intent.getData().getSchemeSpecificPart();
-                String result = "安装成功"+packageName;
-                MainActivity.instance.sendOperatorResult(result);
+    private  long _lastOnBackTime = 0;
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK )
+        {
+            long curTime =  System.currentTimeMillis();
+            if (curTime - _lastOnBackTime < 500)
+            {
+                finish();
             }
-            if (intent.getAction().equals(Intent.ACTION_PACKAGE_REMOVED)) {
-                String packageName = intent.getData().getSchemeSpecificPart();
-                String result = "卸载成功"+packageName;
-                MainActivity.instance.sendOperatorResult(result);
-            }
-            if (intent.getAction().equals(Intent.ACTION_PACKAGE_REPLACED)) {
-                String packageName = intent.getData().getSchemeSpecificPart();
-                String result = "替换成功"+packageName;
-                MainActivity.instance.sendOperatorResult(result);
-            }
+            _lastOnBackTime = curTime;
         }
-
+        return true;
     }
-
 }

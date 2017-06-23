@@ -35,7 +35,14 @@ public class YMService extends Service {
 
     public boolean isConnected()
     {
-        return _netWorker.isConnected();
+        if (_netWorker != null)
+        {
+            return _netWorker.isConnected();
+        }
+        else
+        {
+            return false;
+        }
     }
 
 
