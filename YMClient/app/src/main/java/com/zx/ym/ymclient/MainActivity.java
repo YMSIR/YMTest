@@ -67,6 +67,7 @@ public class MainActivity extends Activity {
     private String _ip;
     private int _port;
     private PowerManager.WakeLock _wLock;
+    private boolean _isKillServer = true;
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
@@ -274,23 +275,25 @@ public class MainActivity extends Activity {
     // 启动Service
     private void startService()
     {
-        if (YMService.instance == null)
+        if (_isKillServer)
         {
             Intent serviceIntent = new Intent(MainActivity.this, YMService.class);
             serviceIntent.putExtra("ip",_ip);
             serviceIntent.putExtra("port", _port);
             startService(serviceIntent);
+            _isKillServer = false;
         }
     }
 
     // 关闭Service
     private void stopService()
     {
-        if( YMService.instance != null)
+        if( !_isKillServer)
         {
             Intent serviceIntent = new Intent(MainActivity.this, YMService.class);
             stopService(serviceIntent);
             YMService.instance = null;
+            _isKillServer = true;
         }
     }
 

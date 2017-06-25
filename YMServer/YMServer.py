@@ -3,6 +3,7 @@
 
 import wx
 import sys
+#import MySQLdb
 
 from YMUIWindow import YMUIWindow as YMUIWindow
 
