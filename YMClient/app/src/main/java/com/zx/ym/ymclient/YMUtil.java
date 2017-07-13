@@ -142,15 +142,18 @@ public class YMUtil {
 	// 获取下载文件名
 	public static String geneFileNameFromUrl(String url)
 	{
-		int index = url.lastIndexOf("/");
+		String name = url;
+		int index = url.indexOf("?");
 		if (index >= 0)
 		{
-			return url.substring(index + 1);
+			name = name.substring(0, index);
 		}
-		else
+		index = name.lastIndexOf("/");
+		if (index >= 0)
 		{
-			return url;
+			name = name.substring(index + 1);
 		}
+		return name;
 	}
 
 	// 获取IP地址
