@@ -204,4 +204,27 @@
             android:layout_centerInParent="true" />
     </RelativeLayout>
 
+    <LinearLayout
+        android:id="@+id/view_select"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <EditText
+            android:id="@+id/textview_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ems="10"
+            android:inputType="textPersonName"
+            android:text="请选择服务器"
+            android:textAlignment="center"
+            android:focusable="false" />
+
+        <ListView
+            android:id="@+id/list_select"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+    </LinearLayout>
+
 </RelativeLayout>

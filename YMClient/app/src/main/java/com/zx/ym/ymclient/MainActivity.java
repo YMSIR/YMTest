@@ -8,20 +8,34 @@ package com.zx.ym.ymclient;
 import android.app.Service;
 import android.content.IntentFilter;
 import android.content.pm.ProviderInfo;
+import android.content.pm.ServiceInfo;
 import android.os.Bundle;
 import android.app.Activity;
 import android.os.PowerManager;
 import android.support.v4.app.FragmentActivity;
+import android.support.v4.util.SimpleArrayMap;
 import android.text.method.ScrollingMovementMethod;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.BaseAdapter;
 import android.widget.Button;
+import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.SimpleAdapter;
 import android.widget.TextView;
+
+import org.json.JSONArray;
 import org.json.JSONObject;
+
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Date;
 import java.text.SimpleDateFormat;
-
-
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import android.Manifest;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -51,6 +65,8 @@ public class MainActivity extends Activity {
     private YMTaskManager _taskManager;
     private View _view_main;
     private View _view_loading;
+    private View _view_select;
+    private ListView _list_select;
 	private TextView _textView_log;
     private TextView _textView_serverIP;
     private TextView _textView_clientIP;
@@ -68,6 +84,15 @@ public class MainActivity extends Activity {
     private int _port;
     private PowerManager.WakeLock _wLock;
     private boolean _isKillServer = true;
+    private int _logCount = 0;
+
+    public class ServerInfo{
+        public String name;
+        public String ip;
+        public int port;
+    }
+
+    private ArrayList<ServerInfo> _serverInfoList;
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
@@ -222,14 +247,23 @@ public class MainActivity extends Activity {
         {
             if (task.result != "")
             {
-                JSONObject obj = new JSONObject(task.result);
-                _ip = obj.getString("ip");
-                _port = obj.getInt("port");
+                _serverInfoList = new ArrayList<ServerInfo>();
+                JSONObject root = new JSONObject(task.result);
+                JSONArray array = root.getJSONArray("serverlist");
+                for (int i = 0; i < array.length(); ++i)
+                {
+                    JSONObject obj =  (JSONObject) array.get(i);
+                    ServerInfo info = new ServerInfo();
+                    info.name = obj.getString("name");
+                    info.ip = obj.getString("ip");
+                    info.port = obj.getInt("port");
+                    _serverInfoList.add(info);
+                }
                 sendGetServerInfoSuccessEvent();
-                YMUtil.log("IP地址:" + _ip + " 端口号:" + _port);
+                YMUtil.log("获取服务器列表成功");
             }
             else {
-                YMUtil.log("download serverinfo failed");
+                YMUtil.log("获取服务器列表失败");
                 sendDownLoadServerInfoTask();
             }
         }
@@ -255,6 +289,8 @@ public class MainActivity extends Activity {
         _progressBar_loading =(ProgressBar) findViewById(R.id.progressBar_loading);
         _progressBar_task =(ProgressBar) findViewById(R.id.progressBar_task);
         _textView_loadtip = (TextView) findViewById(R.id.textView_tip);
+        _view_select = findViewById(R.id.view_select);
+        _list_select = (ListView)findViewById(R.id.list_select);
         testButtons();
     }
 
@@ -380,13 +416,30 @@ public class MainActivity extends Activity {
         _textView_loadtip.setText(tip);
         _view_loading.setVisibility(View.VISIBLE);
         _view_main.setVisibility(View.INVISIBLE);
+        _view_select.setVisibility(View.INVISIBLE);
+    }
+
+    // 显示select
+    private void showSelectUI()
+    {
+        _view_loading.setVisibility(View.INVISIBLE);
+        _view_main.setVisibility(View.INVISIBLE);
+        _view_select.setVisibility(View.VISIBLE);
+
+        SelListAdapter simpleAdapter = new SelListAdapter(this);
+        _list_select.setAdapter(simpleAdapter);
     }
 
     // 显示主信息
-    private void showMainUI()
+    private void showMainUI(ServerInfo info)
     {
         _view_loading.setVisibility(View.INVISIBLE);
+        _view_select.setVisibility(View.INVISIBLE);
         _view_main.setVisibility(View.VISIBLE);
+        _ip = info.ip;
+        _port = info.port;
+
+        startService();
         this.updateUIServerInfo();
         this.updateUIState();
     }
@@ -396,6 +449,11 @@ public class MainActivity extends Activity {
     {
         if(_textView_log != null)
         {
+            if (_logCount > 100)
+            {
+                _logCount = 0;
+                _textView_log.setText("");
+            }
             SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
             String date = df.format(new Date());
             str = date + ":" + str + "\n";
@@ -502,9 +560,7 @@ public class MainActivity extends Activity {
 
     private void on_GetServerInfoSuccessEvent(YMEvent event)
     {
-        startService();
-        showMainUI();
-        updateUIServerInfo();
+        showSelectUI();
     }
 
     private void on_UpdateUIEvent(YMEvent event)
@@ -527,4 +583,63 @@ public class MainActivity extends Activity {
         }
         return true;
     }
+
+    public ServerInfo getServerInfoByIndex(int index)
+    {
+        if (_serverInfoList != null && index < _serverInfoList.size())
+        {
+            return _serverInfoList.get(index);
+        }
+
+        return null;
+    }
+
+    // 选择列表
+     public class SelListAdapter extends BaseAdapter {
+        private LayoutInflater mInflater;
+        public SelListAdapter(Context context){
+            this.mInflater = LayoutInflater.from(context);
+        }
+        @Override
+        public int getCount() {
+            return _serverInfoList.size();
+        }
+
+        @Override
+        public Object getItem(int arg0) {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
+        public long getItemId(int arg0) {
+            // TODO Auto-generated method stub
+            return 0;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            if (convertView == null) {
+                convertView = mInflater.inflate(R.layout.list_item, null);
+                convertView.setTag(position);
+            }
+            final ServerInfo info = getServerInfoByIndex(position);
+            Button btn = (Button)convertView.findViewById(R.id.button_item);
+            if(info != null)
+            {
+                btn.setText(info.name);
+                btn.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        showMainUI(info);
+                    }
+                });
+            }
+            return convertView;
+        }
+    }
+
+
+
+
 }
