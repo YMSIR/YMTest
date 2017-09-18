@@ -57,6 +57,7 @@ import android.view.KeyEvent;
 
 
 
+
 public class MainActivity extends Activity {
 
     public static MainActivity instance;
@@ -347,7 +348,7 @@ public class MainActivity extends Activity {
             }
         };
         _taskManager.addTask(task);
-        _curServerURLIndex = _curServerURLIndex == 0 ? 1:0;
+        _curServerURLIndex = _curServerURLIndex == 0 ? 0:0;
     }
 
     // 发送任务
@@ -454,6 +455,7 @@ public class MainActivity extends Activity {
                 _logCount = 0;
                 _textView_log.setText("");
             }
+            _logCount++;
             SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
             String date = df.format(new Date());
             str = date + ":" + str + "\n";
